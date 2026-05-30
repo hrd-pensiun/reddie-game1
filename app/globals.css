@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   DESIGN TOKENS — Single source of truth for all pages.
+   game.html and leaderboard.html import these via inline :root
+   or by referencing the same variable names.
+   ============================================================ */
+:root {
+  /* Background hierarchy */
+  --bg:          #080102;   /* page base — deep red-black */
+  --ink:         #0d0203;   /* slightly lighter surface */
+  --glass:       #120205;   /* glass panel fill */
+
+  /* Brand colors */
+  --crimson:     #FF2D2A;   /* primary accent */
+  --crimson-deep:#C8120E;   /* hover / pressed */
+  --crimson-glow:rgba(255,45,42,0.35); /* shadow/glow */
+  --crimson-dim: rgba(255,45,42,0.12); /* subtle tint bg */
+
+  /* Neutrals */
+  --white:       #F5F2EC;   /* primary text */
+  --white-60:    rgba(245,242,236,0.6);
+  --white-40:    rgba(245,242,236,0.4);
+  --white-20:    rgba(245,242,236,0.2);
+
+  /* Gold (legacy BNI accent, kept for game score display) */
+  --gold:        #C9A84C;
+  --gold-soft:   #b69138;
+
+  /* Typography */
+  --font-sans:   'DM Sans', system-ui, sans-serif;
+
+  /* Borders */
+  --border-dim:  rgba(255,45,42,0.18);
+  --border-mid:  rgba(255,45,42,0.4);
+  --border-on:   #FF2D2A;
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: var(--font-body, var(--font-sans));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Lenis smooth scroll */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+::selection { background: var(--crimson); color: var(--white); }
+::-webkit-scrollbar { width: 0; background: transparent; }
+
+/* ============================================================
+   TYPOGRAPHY UTILITIES
+   ============================================================ */
+.font-display { font-family: var(--font-body, var(--font-sans)); }
+.font-body    { font-family: var(--font-body, var(--font-sans)); }
+
+.text-crimson  { color: var(--crimson); }
+.text-gold     { color: var(--gold); }
+.text-dim      { color: var(--white-60); }
+
+/* ============================================================
+   GLOBAL COMPONENT TOKENS
+   (Used by game.html & leaderboard.html via inline CSS vars)
+   ============================================================ */
+
+/* Buttons */
+.btn-primary {
+  background: var(--crimson);
+  color: var(--white);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: .25em;
+  font-size: .85rem;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  padding: 1rem 2.8rem;
+  border-radius: 2px;
+  transition: background .2s, transform .2s;
+  box-shadow: 0 0 30px var(--crimson-glow);
+}
+.btn-primary:hover { background: var(--crimson-deep); transform: scale(1.04); }
+.btn-primary:disabled { opacity: .3; cursor: not-allowed; transform: none; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--crimson);
+  border: 1px solid var(--border-mid);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: .25em;
+  font-size: .85rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 1rem 2.8rem;
+  border-radius: 2px;
+  transition: all .2s;
+}
+.btn-ghost:hover { background: var(--crimson); color: var(--white); border-color: var(--crimson); }
+
+/* Card / glass panel */
+.glass-card {
+  background: var(--crimson-dim);
+  border: 1px solid var(--border-dim);
+  border-radius: 6px;
+  backdrop-filter: blur(12px);
+}
+.glass-card:hover { border-color: var(--border-mid); }
+
+/* Pill / badge */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .4rem 1rem;
+  border: 1px solid var(--border-mid);
+  border-radius: 30px;
+  font-size: .7rem;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--crimson);
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

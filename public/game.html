@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Givers Gain — Play</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet" />
+<style>
+  /* === GLOBAL DESIGN TOKENS (mirrors globals.css) === */
+  :root {
+    --bg:            #080102;
+    --ink:           #0d0203;
+    --glass:         #120205;
+    --crimson:       #FF2D2A;
+    --crimson-deep:  #C8120E;
+    --crimson-glow:  rgba(255,45,42,0.35);
+    --crimson-dim:   rgba(255,45,42,0.12);
+    --white:         #F5F2EC;
+    --white-60:      rgba(245,242,236,0.6);
+    --white-40:      rgba(245,242,236,0.4);
+    --gold:          #C9A84C;
+    --gold-soft:     #b69138;
+    --font-sans:     'DM Sans', system-ui, sans-serif;
+    --border-dim:    rgba(255,45,42,0.18);
+    --border-mid:    rgba(255,45,42,0.4);
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--white); font-family: var(--font-sans); height: 100%; overflow: hidden; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--crimson); color: var(--white); }
+
+  #bg-canvas { position: fixed; inset: 0; z-index: 0; opacity: .45; }
+
+  .screen { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 2rem; z-index: 5; opacity: 0; }
+  .screen.on { display: flex; }
+  .screen-inner { max-width: 900px; width: 100%; text-align: center; position: relative; z-index: 2; }
+
+  h1, h2, h3 { font-family: var(--font-sans); font-weight: 700; }
+  .display-xl { font-size: clamp(3rem, 8vw, 6rem); line-height: 1; }
+  .display-lg { font-size: clamp(2.5rem, 6vw, 4.5rem); line-height: 1.05; }
+  .display-md { font-size: clamp(1.8rem, 4vw, 3rem); }
+  .accent { color: var(--crimson); }
+  .gold { color: var(--gold); }
+  .italic { font-style: italic; }
+  .label { font-size: .75rem; letter-spacing: .3em; text-transform: uppercase; color: var(--white-60); }
+
+  /* Buttons */
+  .btn { display: inline-block; padding: 1rem 2.8rem; background: var(--crimson); color: var(--white); border: none; font-family: var(--font-sans); font-weight: 700; letter-spacing: .25em; font-size: .85rem; cursor: pointer; text-transform: uppercase; transition: transform .2s, background .2s; border-radius: 2px; box-shadow: 0 0 24px var(--crimson-glow); }
+  .btn:hover { background: var(--crimson-deep); transform: scale(1.04); }
+  .btn:disabled { opacity: .3; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-ghost { background: transparent; color: var(--crimson); border: 1px solid var(--border-mid); box-shadow: none; }
+  .btn-ghost:hover { background: var(--crimson); color: var(--white); }
+
+  /* Input */
+  .name-input { display: block; width: min(420px, 100%); margin: 2rem auto; background: transparent; border: none; border-bottom: 1px solid var(--crimson); padding: 1rem .5rem; color: var(--white); font-family: var(--font-sans); font-size: 1.4rem; text-align: center; outline: none; }
+  .name-input::placeholder { color: var(--white-40); font-style: italic; }
+
+  /* Industry grid */
+  .industry-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 2rem; }
+  .industry-card { padding: 1.6rem 1rem; border: 1px solid var(--border-dim); background: var(--crimson-dim); cursor: pointer; transition: all .3s; border-radius: 4px; }
+  .industry-card:hover { border-color: var(--crimson); transform: translateY(-4px); background: rgba(255,45,42,0.18); }
+  .industry-card .emoji { font-size: 2.2rem; }
+  .industry-card .nm { margin-top: .5rem; font-size: .9rem; }
+  @media (max-width: 700px) { .industry-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  /* Briefing */
+  .briefing { display: flex; align-items: center; gap: 2.5rem; text-align: left; max-width: 800px; }
+  .briefing .avatar { width: 140px; height: 140px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 4.5rem; flex-shrink: 0; box-shadow: 0 0 50px var(--crimson-glow); }
+  .briefing .bubble { flex: 1; padding: 1.5rem 1.8rem; background: var(--crimson-dim); border: 1px solid var(--border-mid); border-radius: 8px; position: relative; }
+  .briefing .bubble::before { content: ''; position: absolute; left: -10px; top: 40px; width: 0; height: 0; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-right: 10px solid var(--border-mid); }
+  .briefing .npc-name { font-size: 1.8rem; font-weight: 700; color: var(--crimson); }
+  .briefing .npc-role { font-size: .75rem; letter-spacing: .2em; text-transform: uppercase; color: var(--white-60); margin-bottom: .8rem; }
+  .briefing .dialog { font-size: 1.05rem; line-height: 1.6; }
+  .stage-badge { display: inline-block; padding: .4rem 1rem; border: 1px solid var(--border-mid); color: var(--crimson); font-size: .7rem; letter-spacing: .3em; text-transform: uppercase; margin-bottom: 2rem; }
+  @media (max-width: 700px) { .briefing { flex-direction: column; text-align: center; } .briefing .bubble::before { display: none; } }
+
+  /* Game screen */
+  #sGame { padding: 0; display: none; }
+  #sGame.on { display: block; opacity: 1; }
+  #gameCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 1; background: var(--bg); }
+  .hud { position: absolute; top: 0; left: 0; right: 0; padding: 1.2rem 2rem; display: flex; justify-content: space-between; align-items: center; z-index: 10; pointer-events: none; }
+  .hud-left, .hud-right, .hud-center { display: flex; flex-direction: column; }
+  .hud-center { align-items: center; text-align: center; }
+  .hud-right { align-items: flex-end; }
+  .hud .lbl { font-size: .7rem; letter-spacing: .25em; text-transform: uppercase; color: var(--white-60); }
+  .hud .val { font-size: 1.6rem; color: var(--white); }
+  .hud .val.gold { color: var(--gold); font-size: 2rem; }
+  .hud .timer { font-size: 2rem; color: var(--crimson); font-weight: 700; }
+  .progress-bar { position: absolute; top: 90px; left: 2rem; right: 2rem; height: 2px; background: var(--crimson-dim); z-index: 10; }
+  .progress-bar > div { height: 100%; background: var(--crimson); transition: width .2s linear; }
+
+  /* Result */
+  .result-cuan { font-size: clamp(4rem, 12vw, 8rem); font-weight: 700; color: var(--crimson); line-height: 1; margin: 1rem 0; text-shadow: 0 0 40px var(--crimson-glow); }
+  .breakdown { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
+  .breakdown .b { padding: 1rem; border: 1px solid var(--border-dim); border-radius: 4px; background: var(--crimson-dim); }
+  .breakdown .b .s { font-size: .7rem; letter-spacing: .2em; text-transform: uppercase; color: var(--white-60); }
+  .breakdown .b .v { font-size: 1.4rem; font-weight: 700; color: var(--crimson); margin-top: .3rem; }
+  .rank-pill { display: inline-block; padding: .5rem 1.2rem; background: var(--crimson-dim); border: 1px solid var(--border-mid); color: var(--crimson); font-size: .8rem; letter-spacing: .2em; text-transform: uppercase; margin: .8rem 0; }
+  .wit-card { margin-top: 1.5rem; padding: 1.5rem; border: 1px solid var(--border-mid); background: var(--crimson-dim); border-radius: 6px; display: flex; align-items: center; gap: 1.2rem; text-align: left; }
+  .wit-card .wit-logo { width: 60px; height: 60px; background: var(--crimson); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.5rem; border-radius: 6px; flex-shrink: 0; box-shadow: 0 0 20px var(--crimson-glow); }
+  .wit-card .wit-text { flex: 1; font-size: .9rem; line-height: 1.5; }
+  .wit-card .wit-qr { width: 70px; height: 70px; background: var(--white); padding: 4px; border-radius: 4px; }
+  .actions { display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem; flex-wrap: wrap; }
+
+  /* Gacha */
+  .gacha-stage { width: 280px; height: 280px; margin: 2rem auto; position: relative; display: flex; align-items: center; justify-content: center; }
+  .gacha-ball { width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, var(--crimson), var(--crimson-deep) 60%, #5a0808); box-shadow: 0 20px 80px var(--crimson-glow), inset -20px -20px 50px rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; font-size: 4rem; }
+  .gacha-prize { display: none; }
+  .gacha-prize.on { display: block; }
+  .prize-tier { font-size: .8rem; letter-spacing: .3em; text-transform: uppercase; color: var(--crimson); }
+  .prize-icon { font-size: 6rem; margin: 1rem 0; }
+  .prize-name { font-size: 2.5rem; font-weight: 700; }
+
+  /* Transition overlay */
+  #transitionOverlay { position: fixed; inset: 0; background: var(--bg); z-index: 50; display: none; align-items: center; justify-content: center; flex-direction: column; padding: 2rem; text-align: center; }
+  #transitionOverlay.on { display: flex; }
+  #transitionOverlay .subTotal { font-size: clamp(3rem, 8vw, 5rem); font-weight: 700; color: var(--crimson); text-shadow: 0 0 40px var(--crimson-glow); }
+  #transitionOverlay .narrative { font-style: italic; font-size: clamp(1.2rem, 3vw, 2rem); max-width: 700px; margin: 2rem auto; line-height: 1.4; color: var(--white-60); }
+  #transitionOverlay .progress { display: flex; gap: 1rem; align-items: center; justify-content: center; margin-top: 2rem; font-size: .85rem; letter-spacing: .2em; text-transform: uppercase; color: var(--white-40); }
+  #transitionOverlay .progress .done { color: var(--crimson); }
+  #transitionOverlay .progress .active { color: var(--white); }
+
+  /* Leaderboard table */
+  table.lb { width: 100%; border-collapse: collapse; margin-top: 2rem; }
+  table.lb th, table.lb td { padding: .9rem 1rem; text-align: left; border-bottom: 1px solid var(--border-dim); }
+  table.lb th { font-size: .7rem; letter-spacing: .25em; text-transform: uppercase; color: var(--white-60); font-weight: 500; }
+  table.lb td { font-size: 1.05rem; }
+  table.lb tr.me { background: var(--crimson-dim); }
+  table.lb tr.me td { color: var(--crimson); }
+  table.lb td.cuan { color: var(--crimson); text-align: right; font-weight: 700; }
+
+  /* Confetti */
+  #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
+</style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- SCREEN: NAME -->
+  <section class="screen" id="sName">
+    <div class="screen-inner">
+      <h1 class="display-lg">Sebelum mulai, <span class="gold italic">siapa kamu?</span></h1>
+      <input type="text" class="name-input" id="nameField" placeholder="Tuliskan namamu" maxlength="20" />
+      <button class="btn" id="nameNext" disabled>Lanjut</button>
+    </div>
+  </section>
+
+  <!-- SCREEN: INDUSTRY -->
+  <section class="screen" id="sIndustry">
+    <div class="screen-inner">
+      <p class="label">Stage Pengenalan</p>
+      <h1 class="display-md" style="margin-top:.6rem">Industri apa yang kamu <span class="gold italic">geluti?</span></h1>
+      <div class="industry-grid" id="industryGrid"></div>
+    </div>
+  </section>
+
+  <!-- SCREEN: BRIEFING -->
+  <section class="screen" id="sBriefing">
+    <div class="screen-inner">
+      <div class="stage-badge" id="briefStage">Stage 1</div>
+      <div class="briefing">
+        <div class="avatar" id="briefAvatar">👨‍🍳</div>
+        <div class="bubble">
+          <div class="npc-name" id="briefName">Pak Budi</div>
+          <div class="npc-role" id="briefRole">FnB Supplier</div>
+          <p class="dialog" id="briefDialog">…</p>
+        </div>
+      </div>
+      <div style="margin-top:2.5rem"><button class="btn" id="briefStart">SIAP!</button></div>
+    </div>
+  </section>
+
+  <!-- SCREEN: GAME -->
+  <section class="screen" id="sGame">
+    <canvas id="gameCanvas"></canvas>
+    <div class="hud">
+      <div class="hud-left">
+        <span class="lbl">Pemain</span>
+        <span class="val" id="hudName">—</span>
+        <span class="lbl" id="hudIndustry">—</span>
+      </div>
+      <div class="hud-center">
+        <span class="lbl">Total Poin</span>
+        <span class="val" id="hudStage">0</span>
+        <span class="timer" id="hudTimer">45</span>
+      </div>
+      <div class="hud-right">
+        <span class="lbl">TYFCB</span>
+        <span class="val gold" id="hudCuan">Rp 0</span>
+      </div>
+    </div>
+    <div class="progress-bar"><div id="hudProgress" style="width:100%"></div></div>
+  </section>
+
+  <!-- TRANSITION -->
+  <div id="transitionOverlay">
+    <p class="label">Stage Selesai</p>
+    <div class="subTotal" id="trSubtotal">Rp 0</div>
+    <p class="narrative" id="trNarrative">…</p>
+    <div class="progress" id="trProgress"></div>
+  </div>
+
+  <!-- SCREEN: RESULT -->
+  <section class="screen" id="sResult">
+    <div class="screen-inner">
+      <p class="label">Hasil Akhir</p>
+      <h2 class="display-md italic"><span id="resName">—</span></h2>
+      <div class="result-cuan" id="resCuan">Rp 0</div>
+      <div class="breakdown" id="resBreakdown"></div>
+      <div class="rank-pill" id="resRank">Menghitung peringkat…</div>
+      <div class="wit-card">
+        <div class="wit-logo">WIT</div>
+        <div class="wit-text"><strong>WIT Technology</strong><br>Solusi digital untuk bisnis BNI — buat hadirmu makin terhubung.</div>
+        <img class="wit-qr" id="resQR" alt="QR" />
+      </div>
+      <div id="gachaGate" style="margin-top:1.5rem"></div>
+      <div class="actions">
+        <button class="btn btn-ghost" id="resReplay">Main Lagi</button>
+        <button class="btn btn-ghost" id="resBoard">Leaderboard</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN: GACHA -->
+  <section class="screen" id="sGacha">
+    <div class="screen-inner">
+      <p class="label">Hadiah Spesial</p>
+      <h2 class="display-md italic">Putar Gacha</h2>
+      <div class="gacha-stage">
+        <div class="gacha-ball" id="gachaBall">✦</div>
+      </div>
+      <div class="gacha-prize" id="gachaPrize">
+        <div class="prize-tier" id="prizeTier">—</div>
+        <div class="prize-icon" id="prizeIcon">🎁</div>
+        <div class="prize-name" id="prizeName">—</div>
+        <p style="margin-top:1rem; color: rgba(245,242,236,.65)">Tunjukkan layar ini ke petugas booth untuk klaim!</p>
+      </div>
+      <div class="actions" style="margin-top:2rem">
+        <button class="btn" id="gachaSpin">Putar!</button>
+        <button class="btn btn-ghost" id="gachaToBoard" style="display:none">Lihat Leaderboard</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN: LEADERBOARD -->
+  <section class="screen" id="sLeader">
+    <div class="screen-inner" style="max-width:1000px">
+      <p class="label">Peringkat</p>
+      <h2 class="display-md italic gold">Top Givers</h2>
+      <table class="lb">
+        <thead><tr><th>#</th><th>Nama</th><th>Industri</th><th>Stage</th><th style="text-align:right">TYFCB</th></tr></thead>
+        <tbody id="lbBody"></tbody>
+      </table>
+      <div class="actions">
+        <button class="btn" id="lbReplay">Main Lagi</button>
+        <button class="btn btn-ghost" id="lbReset">Reset (Operator)</button>
+      </div>
+    </div>
+  </section>
+
+  <canvas id="confetti"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+/* ========================================================================
+ * CONFIG
+ * ====================================================================== */
+const CONFIG = {
+  GACHA_MIN_CUAN: 30000,
+  STAGE_DURATION: 45,
+  WIT_COIN_VALUE: 10,
+  WIT_COIN_MAX_PER_STAGE: 3,
+  CUAN_PER_POINT: 1000,
+  LEADERBOARD_MAX: 50,
+  LEADERBOARD_REFRESH_MS: 10000,
+  WIT_QR_URL: 'https://wit.id',
+  WIT_WA_NUMBER: '628xxxxxxxxxx',
+};
+
+const INDUSTRIES = [
+  { id: 'hospitality', emoji: '🏨', name: 'Hospitality' },
+  { id: 'fnb', emoji: '🍽️', name: 'FnB' },
+  { id: 'manufaktur', emoji: '🏭', name: 'Manufaktur' },
+  { id: 'teknologi', emoji: '💻', name: 'Teknologi' },
+  { id: 'properti', emoji: '🏗️', name: 'Properti' },
+  { id: 'kesehatan', emoji: '💊', name: 'Kesehatan' },
+  { id: 'lainnya', emoji: '📦', name: 'Lainnya' },
+];
+
+const STAGES = [
+  {
+    n: 1,
+    npc: { name: 'Pak Budi', role: 'FnB Supplier', emoji: '👨‍🍳', color: '#7a5230' },
+    dialog: 'Halo! Saya Pak Budi. Tolong kenalkan saya dengan pemilik Hotel, Leisure Park, dan Manufaktur. Bahan baku saya sangat cocok untuk mereka!',
+    coins: [
+      { label: 'Hotel', value: 3, color: '#3a9d5c' },
+      { label: 'Leisure', value: 2, color: '#e0b431' },
+      { label: 'Manufaktur', value: 1, color: '#3a78c2' },
+    ],
+    obstacles: [
+      { label: 'Males', value: -2 },
+      { label: 'Padel Terus', value: -1 },
+      { label: 'Tidak Kredibel', value: -1 },
+    ],
+  },
+  {
+    n: 2,
+    npc: { name: 'Bu Sari', role: 'Business Consultant', emoji: '👩‍💼', color: '#9d3a7a' },
+    dialog: 'Bagus! Sekarang perluas jaringanmu sendiri. Lakukan One-to-One dengan anggota sebanyak mungkin — kenali mereka, dan mereka akan kenali kamu!',
+    coins: [
+      { label: 'Hotel', value: 3, color: '#3a9d5c' },
+      { label: 'FnB', value: 2, color: '#e07c31' },
+      { label: 'Teknologi', value: 2, color: '#31b8e0' },
+      { label: 'Properti', value: 1, color: '#a0a0a0' },
+    ],
+    obstacles: [
+      { label: 'Ngobrol Ngalor-Ngidul', value: -2 },
+      { label: 'Lupa Follow Up', value: -3 },
+      { label: 'Skip Meeting', value: -4 },
+    ],
+  },
+  {
+    n: 3,
+    npc: { name: 'Pak Rian', role: 'Hotel Director', emoji: '🤵', color: '#3a5a9d' },
+    dialog: 'Saya dengar kamu dari jaringan BNI. Saya tertarik solusi digital untuk hotel saya. Buktikan kamu serius — kirimkan proposal yang tepat!',
+    coins: [
+      { label: 'Data & Riset', value: 4, color: '#31b8e0' },
+      { label: 'Ide Solusi', value: 3, color: '#e0b431' },
+      { label: 'Portofolio', value: 3, color: '#9d3aa0' },
+      { label: 'Referensi', value: 2, color: '#3a9d5c' },
+    ],
+    obstacles: [
+      { label: 'Proposal Asal', value: -4 },
+      { label: 'Telat Kirim', value: -3 },
+      { label: 'Tanpa Backup Data', value: -5 },
+    ],
+  },
+];
+
+const PRIZES = [
+  { icon: '🏆', name: 'Tumbler WIT', tier: 'Grand Prize', chance: 5 },
+  { icon: '🎽', name: 'Kaos WIT', tier: 'Rare', chance: 15 },
+  { icon: '📓', name: 'Notebook Premium', tier: 'Uncommon', chance: 20 },
+  { icon: '🎫', name: 'Voucher Rp 50.000', tier: 'Uncommon', chance: 20 },
+  { icon: '🛍️', name: 'Goodie Bag BNI', tier: 'Common', chance: 25 },
+  { icon: '✨', name: 'Sticker Pack', tier: 'Common', chance: 15 },
+];
+
+const TRANSITIONS = [
+  null,
+  'Pak Budi senang! Tapi kini giliran kamu sendiri yang butuh bantuan...',
+  'Jaringanmu semakin luas! Saatnya yang kamu tanam berbuah...',
+  'DONE DEAL! 🎉 Kamu berhasil membuktikan diri!',
+];
+
+/* ========================================================================
+ * STATE
+ * ====================================================================== */
+function blankStats() { return { points: 0, cuan: 0, coins: 0, obstacles: 0, witBonus: 0 }; }
+const state = {
+  name: localStorage.getItem('gg_player_name') || '',
+  industry: null,
+  stageIdx: 0,
+  stageScores: [0, 0, 0],
+  stageStats: [blankStats(), blankStats(), blankStats()],  // statistik gameplay detail per stage
+  totalCuan: 0,
+};
+
+const fmtRp = n => 'Rp ' + Math.max(0, n).toLocaleString('id-ID');
+
+/* ========================================================================
+ * SCREEN MANAGER
+ * ====================================================================== */
+const screens = ['sName', 'sIndustry', 'sBriefing', 'sGame', 'sResult', 'sGacha', 'sLeader'];
+let currentScreen = null;
+function show(id) {
+  if (currentScreen === id) return;
+  const next = document.getElementById(id);
+  if (currentScreen) {
+    const prev = document.getElementById(currentScreen);
+    gsap.to(prev, { opacity: 0, duration: .35, onComplete: () => prev.classList.remove('on') });
+  }
+  next.classList.add('on');
+  gsap.fromTo(next, { opacity: 0 }, { opacity: 1, duration: .5, delay: .2 });
+  currentScreen = id;
+}
+
+/* ========================================================================
+ * THREE.JS BACKGROUND (same as landing)
+ * ====================================================================== */
+(function initBg() {
+  const canvas = document.getElementById('bg-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.z = 60;
+  const N = 70;
+  const positions = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    positions[i*3] = (Math.random() - .5) * 100;
+    positions[i*3+1] = (Math.random() - .5) * 60;
+    positions[i*3+2] = (Math.random() - .5) * 40;
+  }
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const points = new THREE.Points(geom, new THREE.PointsMaterial({ color: 0xC9A84C, size: .5, transparent: true, opacity: .7 }));
+  scene.add(points);
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+  let t = 0;
+  (function loop() {
+    t += .003;
+    points.rotation.y = t * .3;
+    points.rotation.x = Math.sin(t) * .1;
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  })();
+})();
+
+/* ========================================================================
+ * NAME SCREEN
+ * ====================================================================== */
+const nameField = document.getElementById('nameField');
+const nameNext = document.getElementById('nameNext');
+nameField.value = state.name;
+nameNext.disabled = state.name.length < 2;
+nameField.addEventListener('input', () => nameNext.disabled = nameField.value.trim().length < 2);
+nameField.addEventListener('keydown', e => { if (e.key === 'Enter' && !nameNext.disabled) nameNext.click(); });
+nameNext.addEventListener('click', () => {
+  state.name = nameField.value.trim();
+  localStorage.setItem('gg_player_name', state.name);
+  show('sIndustry');
+});
+
+/* ========================================================================
+ * INDUSTRY SCREEN
+ * ====================================================================== */
+const grid = document.getElementById('industryGrid');
+INDUSTRIES.forEach(ind => {
+  const card = document.createElement('div');
+  card.className = 'industry-card';
+  card.innerHTML = `<div class="emoji">${ind.emoji}</div><div class="nm">${ind.name}</div>`;
+  card.addEventListener('click', () => {
+    state.industry = ind;
+    state.stageIdx = 0;
+    state.stageScores = [0, 0, 0];
+    state.stageStats = [blankStats(), blankStats(), blankStats()];
+    state.totalCuan = 0;
+    showBriefing();
+  });
+  grid.appendChild(card);
+});
+
+/* ========================================================================
+ * BRIEFING
+ * ====================================================================== */
+function showBriefing() {
+  const stage = STAGES[state.stageIdx];
+  document.getElementById('briefStage').textContent = `Stage ${stage.n} / 3`;
+  document.getElementById('briefAvatar').textContent = stage.npc.emoji;
+  document.getElementById('briefAvatar').style.background = stage.npc.color;
+  document.getElementById('briefName').textContent = stage.npc.name;
+  document.getElementById('briefRole').textContent = stage.npc.role;
+  document.getElementById('briefDialog').textContent = stage.dialog;
+  show('sBriefing');
+}
+document.getElementById('briefStart').addEventListener('click', () => startStage());
+
+/**
+ * Dispatcher engine per-stage. Seam untuk memasang engine iso Stage 2 nanti
+ * tanpa membongkar alur. Kontrak engine: panggil onStageComplete(earnedCuan, statsObj).
+ */
+function startStage() {
+  if (state.stageIdx === 1 && window.StageIso) {
+    return window.StageIso.start(state, onStageComplete);
+  }
+  startGame();  // default: engine 2D lane-runner
+}
+
+/* ========================================================================
+ * GAMEPLAY
+ * ====================================================================== */
+const gameCanvas = document.getElementById('gameCanvas');
+const gctx = gameCanvas.getContext('2d');
+let gameW = 0, gameH = 0;
+const LANES = 4;
+let laneY = [];
+
+function resizeGame() {
+  const dpr = Math.min(window.devicePixelRatio, 2);
+  gameW = window.innerWidth;
+  gameH = window.innerHeight;
+  gameCanvas.width = gameW * dpr;
+  gameCanvas.height = gameH * dpr;
+  gameCanvas.style.width = gameW + 'px';
+  gameCanvas.style.height = gameH + 'px';
+  gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const top = 140, bot = gameH - 80;
+  laneY = [];
+  for (let i = 0; i < LANES; i++) laneY.push(top + (bot - top) * (i / (LANES - 1)));
+}
+window.addEventListener('resize', resizeGame);
+
+let reddieImg = null;
+(function loadReddie() {
+  const tryLoad = (src, next) => {
+    const img = new Image();
+    img.onload = () => { reddieImg = img; };
+    img.onerror = next;
+    img.src = src;
+  };
+  tryLoad('assets/reddie.png', () => tryLoad('assets/reddie.gif', () => {}));
+})();
+
+/* Coin assets — 5 gambar industri isometrik, masing-masing bernilai 10 poin.
+ * Mencoba assets/coin-<slug>.png dulu, fallback ke assets/<slug>.png (file yang sudah ada),
+ * lalu fallback ke lingkaran crimson kalau dua-duanya tidak ada. */
+const COIN_ASSETS = ['hospitality', 'manufaktur', 'pabrik', 'tambang', 'toko'].map(slug => {
+  const img = new Image();
+  img.onerror = () => { img.onerror = null; img.src = `assets/${slug}.png`; };
+  img.src = `assets/coin-${slug}.png`;
+  return { slug, value: 10, img };
+});
+const isReady = img => img && img.complete && img.naturalWidth > 0;
+
+/* Obstacle generik — tengkorak. Pakai gambar assets/obstacle-skull.png bila ada,
+ * kalau tidak fallback ke emoji 💀 (selalu tersedia, tanpa perlu file). */
+let skullImg = null;
+(function loadSkull() {
+  const i = new Image();
+  i.onload = () => { skullImg = i; };
+  i.src = 'assets/obstacle-skull.png';
+})();
+
+const game = {
+  running: false,
+  stage: null,
+  player: { lane: 1, y: 0, targetY: 0, bob: 0, hitFlash: 0, shake: 0 },
+  entities: [],
+  particles: [],
+  floaters: [],
+  stagePoints: 0,
+  timeLeft: 0,
+  scrollSpeed: 220,
+  lastSpawnCoin: 0,
+  lastSpawnObs: 0,
+  lastSpawnWit: 0,
+  witCount: 0,
+  startTime: 0,
+};
+
+function startGame() {
+  resizeGame();
+  game.stage = STAGES[state.stageIdx];
+  game.running = true;
+  game.entities = [];
+  game.particles = [];
+  game.floaters = [];
+  game.stagePoints = 0;
+  game.timeLeft = CONFIG.STAGE_DURATION;
+  game.scrollSpeed = 220;
+  game.lastSpawnCoin = 0;
+  game.lastSpawnObs = 0;
+  game.lastSpawnWit = 0;
+  game.witCount = 0;
+  game.coins = 0;
+  game.obstacles = 0;
+  game.witBonus = 0;
+  // skor kumulatif dari stage sebelumnya — HUD mulai dari sini, bukan Rp 0
+  game.carried = state.stageScores.slice(0, state.stageIdx).reduce((a, b) => a + b, 0);
+  game.startTime = performance.now();
+  game.player.lane = 1;
+  game.player.y = laneY[1];
+  game.player.targetY = laneY[1];
+
+  document.getElementById('hudName').textContent = state.name;
+  document.getElementById('hudIndustry').textContent = state.industry.name;
+  document.getElementById('hudStage').textContent = totalPoints();
+  document.getElementById('hudCuan').textContent = fmtRp(game.carried);
+  document.getElementById('hudTimer').textContent = CONFIG.STAGE_DURATION;
+  document.getElementById('hudProgress').style.width = '100%';
+
+  show('sGame');
+  requestAnimationFrame(gameLoop);
+  startTimer();
+}
+
+let timerInterval = null;
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    game.timeLeft -= 1;
+    document.getElementById('hudTimer').textContent = Math.max(0, game.timeLeft);
+    document.getElementById('hudProgress').style.width = (game.timeLeft / CONFIG.STAGE_DURATION * 100) + '%';
+    if (game.timeLeft <= 0) {
+      clearInterval(timerInterval);
+      endStage();
+    }
+  }, 1000);
+}
+
+/* INPUT */
+function moveLane(dir) {
+  if (!game.running) return;
+  game.player.lane = Math.max(0, Math.min(LANES - 1, game.player.lane + dir));
+  game.player.targetY = laneY[game.player.lane];
+}
+window.addEventListener('keydown', e => {
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') moveLane(-1);
+  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') moveLane(1);
+});
+let touchStartY = null;
+gameCanvas.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; });
+gameCanvas.addEventListener('touchend', e => {
+  if (touchStartY === null) return;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dy) > 30) moveLane(dy > 0 ? 1 : -1);
+  touchStartY = null;
+});
+
+/* SPAWN */
+function spawnCoin() {
+  const a = COIN_ASSETS[Math.floor(Math.random() * COIN_ASSETS.length)];
+  game.entities.push({
+    type: 'coin', x: gameW + 40, lane: Math.floor(Math.random() * LANES),
+    r: 34, label: a.slug, value: a.value, color: '#FF2D2A', img: a.img,
+  });
+}
+function spawnWit() {
+  game.entities.push({
+    type: 'wit', x: gameW + 40, lane: Math.floor(Math.random() * LANES),
+    r: 42, label: 'WIT', value: CONFIG.WIT_COIN_VALUE, color: '#C9A84C', shimmer: 0,
+  });
+  game.witCount++;
+}
+function spawnObstacle() {
+  const stage = game.stage;
+  // 30% chance for the universal "Belum Pakai WIT" obstacle
+  let o;
+  if (Math.random() < 0.3) {
+    o = { label: 'Belum Pakai WIT', value: -5, universal: true };
+  } else {
+    o = stage.obstacles[Math.floor(Math.random() * stage.obstacles.length)];
+  }
+  game.entities.push({
+    type: 'obstacle', x: gameW + 40, lane: Math.floor(Math.random() * LANES),
+    w: o.universal ? 90 : 70, h: 56, label: o.label, value: o.value, universal: !!o.universal,
+  });
+}
+
+/* PARTICLES */
+function burst(x, y, color, count = 18) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const s = 2 + Math.random() * 4;
+    game.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, color });
+  }
+}
+function floater(text, x, y, color) {
+  game.floaters.push({ text, x, y, vy: -1.2, life: 1.4, color });
+}
+
+/* MAIN LOOP */
+let lastT = 0;
+function gameLoop(t) {
+  if (!game.running) return;
+  const dt = Math.min(0.05, (t - lastT) / 1000 || 0.016);
+  lastT = t;
+  update(dt, t);
+  render(t);
+  requestAnimationFrame(gameLoop);
+}
+
+function update(dt, t) {
+  const elapsed = (t - game.startTime) / 1000;
+  // ramp speed every 15s
+  game.scrollSpeed = 220 + Math.floor(elapsed / 15) * 60;
+
+  // Player lerp
+  game.player.y += (game.player.targetY - game.player.y) * 0.25;
+  game.player.bob += dt * 6;
+  if (game.player.hitFlash > 0) game.player.hitFlash -= dt;
+  if (game.player.shake > 0) game.player.shake -= dt * 4;
+
+  // Spawn coins
+  if (elapsed - game.lastSpawnCoin > 0.8) {
+    spawnCoin();
+    game.lastSpawnCoin = elapsed;
+  }
+  // Spawn obstacles
+  const obsInterval = Math.max(0.7, 1.5 - elapsed * 0.01);
+  if (elapsed - game.lastSpawnObs > obsInterval) {
+    spawnObstacle();
+    game.lastSpawnObs = elapsed;
+  }
+  // Spawn WIT
+  if (game.witCount < CONFIG.WIT_COIN_MAX_PER_STAGE &&
+      elapsed - game.lastSpawnWit > 10 &&
+      elapsed > 5 &&
+      Math.random() < 0.02) {
+    spawnWit();
+    game.lastSpawnWit = elapsed;
+  }
+
+  // Move entities + collision
+  const playerX = gameW * 0.2;
+  for (let i = game.entities.length - 1; i >= 0; i--) {
+    const e = game.entities[i];
+    e.x -= game.scrollSpeed * dt;
+    if (e.type === 'wit') e.shimmer += dt * 4;
+
+    const ey = laneY[e.lane];
+    const dx = Math.abs(e.x - playerX);
+    const dy = Math.abs(ey - game.player.y);
+
+    let hit = false;
+    if (e.type === 'coin' || e.type === 'wit') {
+      hit = dx < 40 && dy < 40;
+    } else if (e.type === 'obstacle') {
+      hit = dx < 50 && dy < 40;
+    }
+
+    if (hit) {
+      if (e.type === 'wit') {
+        game.stagePoints += e.value;
+        game.witBonus += e.value;
+        burst(e.x, ey, '#C9A84C', 40);
+        floater('+' + fmtRp(e.value * CONFIG.CUAN_PER_POINT) + '!', e.x, ey, '#C9A84C');
+      } else if (e.type === 'coin') {
+        game.stagePoints += e.value;
+        game.coins++;
+        burst(e.x, ey, e.color, 16);
+        floater('+' + fmtRp(e.value * CONFIG.CUAN_PER_POINT), e.x, ey, e.color);
+      } else {
+        game.stagePoints += e.value;
+        game.obstacles++;
+        game.player.hitFlash = 0.4;
+        game.player.shake = 0.5;
+        burst(playerX, game.player.y, '#E8302A', 20);
+        floater(fmtRp(e.value * CONFIG.CUAN_PER_POINT), e.x, ey, '#E8302A');
+      }
+      game.entities.splice(i, 1);
+      updateCuanHUD();
+      continue;
+    }
+
+    if (e.x < -80) game.entities.splice(i, 1);
+  }
+
+  // Particles
+  for (let i = game.particles.length - 1; i >= 0; i--) {
+    const p = game.particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= dt * 1.5;
+    if (p.life <= 0) game.particles.splice(i, 1);
+  }
+  // Floaters
+  for (let i = game.floaters.length - 1; i >= 0; i--) {
+    const f = game.floaters[i];
+    f.y += f.vy; f.life -= dt;
+    if (f.life <= 0) game.floaters.splice(i, 1);
+  }
+}
+
+// total poin kumulatif (poin stage sebelumnya + stage berjalan)
+function totalPoints() {
+  return Math.floor(game.carried / CONFIG.CUAN_PER_POINT) + Math.max(0, game.stagePoints);
+}
+
+function updateCuanHUD() {
+  const stageCuan = Math.max(0, game.stagePoints * CONFIG.CUAN_PER_POINT);
+  document.getElementById('hudCuan').textContent = fmtRp(game.carried + stageCuan);
+  document.getElementById('hudStage').textContent = totalPoints();
+}
+
+function render(t) {
+  gctx.clearRect(0, 0, gameW, gameH);
+
+  // Lane lines (subtle)
+  gctx.strokeStyle = 'rgba(201,168,76,0.08)';
+  gctx.lineWidth = 1;
+  for (let i = 0; i < LANES; i++) {
+    gctx.beginPath();
+    gctx.moveTo(0, laneY[i]);
+    gctx.lineTo(gameW, laneY[i]);
+    gctx.stroke();
+  }
+
+  // Entities
+  for (const e of game.entities) {
+    const y = laneY[e.lane];
+    if (e.type === 'wit') {
+      const r = e.r + Math.sin(e.shimmer) * 3;
+      const grad = gctx.createRadialGradient(e.x, y, 0, e.x, y, r * 2);
+      grad.addColorStop(0, 'rgba(201,168,76,0.6)');
+      grad.addColorStop(1, 'rgba(201,168,76,0)');
+      gctx.fillStyle = grad;
+      gctx.beginPath(); gctx.arc(e.x, y, r * 2, 0, Math.PI * 2); gctx.fill();
+      gctx.fillStyle = e.color;
+      gctx.beginPath(); gctx.arc(e.x, y, r, 0, Math.PI * 2); gctx.fill();
+      gctx.fillStyle = '#07090D';
+      gctx.font = `bold 14px 'DM Sans', sans-serif`;
+      gctx.textAlign = 'center';
+      gctx.textBaseline = 'middle';
+      gctx.fillText(e.label, e.x, y);
+    } else if (e.type === 'coin') {
+      const size = e.r * 2;
+      if (isReady(e.img)) {
+        // soft crimson glow di belakang gambar
+        const grad = gctx.createRadialGradient(e.x, y, 0, e.x, y, size);
+        grad.addColorStop(0, 'rgba(255,45,42,0.35)');
+        grad.addColorStop(1, 'rgba(255,45,42,0)');
+        gctx.fillStyle = grad;
+        gctx.beginPath(); gctx.arc(e.x, y, size, 0, Math.PI * 2); gctx.fill();
+        gctx.drawImage(e.img, e.x - size/2, y - size/2, size, size);
+      } else {
+        // fallback: lingkaran crimson
+        gctx.fillStyle = e.color;
+        gctx.beginPath(); gctx.arc(e.x, y, e.r, 0, Math.PI * 2); gctx.fill();
+      }
+    } else if (e.type === 'obstacle') {
+      const size = Math.max(e.w, e.h);
+      if (isReady(skullImg)) {
+        gctx.drawImage(skullImg, e.x - size/2, y - size/2, size, size);
+      } else {
+        // fallback: emoji tengkorak generik + glow merah halus
+        const grad = gctx.createRadialGradient(e.x, y, 0, e.x, y, size * 0.7);
+        grad.addColorStop(0, 'rgba(232,48,42,0.35)');
+        grad.addColorStop(1, 'rgba(232,48,42,0)');
+        gctx.fillStyle = grad;
+        gctx.beginPath(); gctx.arc(e.x, y, size * 0.7, 0, Math.PI * 2); gctx.fill();
+        gctx.font = `${size}px serif`;
+        gctx.textAlign = 'center';
+        gctx.textBaseline = 'middle';
+        gctx.fillText('💀', e.x, y + 2);
+      }
+    }
+  }
+
+  // Particles
+  for (const p of game.particles) {
+    gctx.globalAlpha = Math.max(0, p.life);
+    gctx.fillStyle = p.color;
+    gctx.fillRect(p.x, p.y, 3, 3);
+  }
+  gctx.globalAlpha = 1;
+
+  // Floaters
+  for (const f of game.floaters) {
+    gctx.globalAlpha = Math.max(0, Math.min(1, f.life));
+    gctx.fillStyle = f.color;
+    gctx.font = `bold 18px 'DM Sans', sans-serif`;
+    gctx.textAlign = 'center';
+    gctx.fillText(f.text, f.x, f.y);
+  }
+  gctx.globalAlpha = 1;
+
+  // Player (Reddie)
+  const px = gameW * 0.2 + (game.player.shake > 0 ? (Math.random() - .5) * 10 : 0);
+  const py = game.player.y + Math.sin(game.player.bob) * 3;
+  const pw = 60, ph = 80;
+  gctx.save();
+  if (game.player.hitFlash > 0) {
+    gctx.shadowColor = '#E8302A';
+    gctx.shadowBlur = 40;
+  }
+  if (reddieImg) {
+    gctx.drawImage(reddieImg, px - pw/2, py - ph/2, pw, ph);
+  } else {
+    // placeholder: red rounded rect
+    gctx.fillStyle = '#E8302A';
+    gctx.beginPath();
+    gctx.roundRect(px - pw/2, py - ph/2, pw, ph, 12);
+    gctx.fill();
+    gctx.fillStyle = '#F5F2EC';
+    gctx.beginPath();
+    gctx.arc(px - 10, py - 10, 5, 0, Math.PI * 2);
+    gctx.arc(px + 10, py - 10, 5, 0, Math.PI * 2);
+    gctx.fill();
+  }
+  gctx.restore();
+}
+
+/* polyfill for roundRect just in case */
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    this.moveTo(x+r, y);
+    this.arcTo(x+w, y, x+w, y+h, r);
+    this.arcTo(x+w, y+h, x, y+h, r);
+    this.arcTo(x, y+h, x, y, r);
+    this.arcTo(x, y, x+w, y, r);
+    return this;
+  };
+}
+
+/* ========================================================================
+ * END STAGE / TRANSITION
+ * ====================================================================== */
+// Engine 2D selesai → kumpulkan skor + statistik, lalu commit lewat jalur bersama.
+function endStage() {
+  game.running = false;
+  const earned = Math.max(0, game.stagePoints * CONFIG.CUAN_PER_POINT);
+  onStageComplete(earned, {
+    points: game.stagePoints,
+    cuan: earned,
+    coins: game.coins,
+    obstacles: game.obstacles,
+    witBonus: game.witBonus,
+  });
+}
+
+/**
+ * Jalur commit bersama untuk SEMUA engine (2D lane-runner & iso Stage 2 nanti).
+ * Engine cukup memanggil onStageComplete(earnedCuan, statsObj).
+ */
+function onStageComplete(earned, stats) {
+  state.stageScores[state.stageIdx] = earned;
+  state.stageStats[state.stageIdx] = stats;
+  state.totalCuan = state.stageScores.reduce((a, b) => a + b, 0);
+  runTransition();
+}
+
+function runTransition() {
+  const overlay = document.getElementById('transitionOverlay');
+  // sub-total = total kumulatif sampai stage ini (biar terasa "kebawa")
+  document.getElementById('trSubtotal').textContent = fmtRp(state.totalCuan);
+  document.getElementById('trNarrative').textContent = TRANSITIONS[state.stageIdx + 1] || '';
+  const progressEl = document.getElementById('trProgress');
+  progressEl.innerHTML = [1,2,3].map(n => {
+    if (n <= state.stageIdx + 1) return `<span class="done">Stage ${n} ✓</span>`;
+    if (n === state.stageIdx + 2) return `→ <span class="active">Stage ${n}</span>`;
+    return `→ <span>Stage ${n}</span>`;
+  }).join(' ');
+
+  overlay.classList.add('on');
+  gsap.fromTo(overlay, { opacity: 0 }, { opacity: 1, duration: .5 });
+
+  setTimeout(() => {
+    gsap.to(overlay, { opacity: 0, duration: .5, onComplete: () => {
+      overlay.classList.remove('on');
+      state.stageIdx++;
+      if (state.stageIdx >= 3) showResult();
+      else showBriefing();
+    }});
+  }, 3000);
+}
+
+/* ========================================================================
+ * RESULT
+ * ====================================================================== */
+function showResult() {
+  saveScore();
+  document.getElementById('resName').textContent = `${state.name} · ${state.industry.name}`;
+  const cuanEl = document.getElementById('resCuan');
+  const obj = { v: 0 };
+  gsap.to(obj, {
+    v: state.totalCuan, duration: 2, ease: 'power2.out',
+    onUpdate: () => cuanEl.textContent = fmtRp(Math.floor(obj.v))
+  });
+
+  document.getElementById('resBreakdown').innerHTML = state.stageScores.map((v, i) =>
+    `<div class="b"><div class="s">Stage ${i+1}</div><div class="v">${fmtRp(v)}</div></div>`
+  ).join('');
+
+  // rank
+  const scores = getScores();
+  const myRank = scores.findIndex(s => s.ts === state.lastSavedTs) + 1;
+  document.getElementById('resRank').textContent = myRank > 0 ? `Kamu #${myRank} hari ini!` : 'Ranking belum tersedia';
+
+  // QR
+  document.getElementById('resQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(CONFIG.WIT_QR_URL)}&bgcolor=F5F2EC&color=07090D`;
+
+  // gacha gate
+  const gate = document.getElementById('gachaGate');
+  if (state.totalCuan >= CONFIG.GACHA_MIN_CUAN) {
+    gate.innerHTML = '<button class="btn" id="gachaOpen">✦ Putar Gacha Hadiah</button>';
+    document.getElementById('gachaOpen').addEventListener('click', () => openGacha());
+  } else {
+    gate.innerHTML = `<p style="color:rgba(245,242,236,.5); font-style:italic">Capai ${fmtRp(CONFIG.GACHA_MIN_CUAN)} untuk buka gacha</p>`;
+  }
+
+  show('sResult');
+}
+document.getElementById('resReplay').addEventListener('click', () => location.reload());
+document.getElementById('resBoard').addEventListener('click', () => showLeaderboard());
+
+/* ========================================================================
+ * GACHA
+ * ====================================================================== */
+function openGacha() {
+  show('sGacha');
+  document.getElementById('gachaBall').style.display = 'flex';
+  document.getElementById('gachaPrize').classList.remove('on');
+  document.getElementById('gachaSpin').style.display = 'inline-block';
+  document.getElementById('gachaToBoard').style.display = 'none';
+}
+function pickPrize() {
+  const total = PRIZES.reduce((s, p) => s + p.chance, 0);
+  let r = Math.random() * total;
+  for (const p of PRIZES) { r -= p.chance; if (r <= 0) return p; }
+  return PRIZES[PRIZES.length - 1];
+}
+document.getElementById('gachaSpin').addEventListener('click', () => {
+  const ball = document.getElementById('gachaBall');
+  document.getElementById('gachaSpin').style.display = 'none';
+  gsap.to(ball, { rotation: 1440, scale: 1.2, duration: 2.5, ease: 'power2.inOut',
+    onComplete: () => {
+      gsap.to(ball, { scale: 0, duration: .3, onComplete: () => {
+        ball.style.display = 'none';
+        const prize = pickPrize();
+        document.getElementById('prizeTier').textContent = prize.tier;
+        document.getElementById('prizeIcon').textContent = prize.icon;
+        document.getElementById('prizeName').textContent = prize.name;
+        document.getElementById('gachaPrize').classList.add('on');
+        gsap.fromTo('#gachaPrize', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: .6 });
+        confettiBurst();
+        document.getElementById('gachaToBoard').style.display = 'inline-block';
+      }});
+    }
+  });
+});
+document.getElementById('gachaToBoard').addEventListener('click', () => showLeaderboard());
+
+/* CONFETTI */
+function confettiBurst() {
+  const c = document.getElementById('confetti');
+  c.width = window.innerWidth;
+  c.height = window.innerHeight;
+  const ctx = c.getContext('2d');
+  const pieces = [];
+  const colors = ['#C9A84C', '#F5F2EC', '#E8302A'];
+  for (let i = 0; i < 120; i++) {
+    pieces.push({
+      x: window.innerWidth/2, y: window.innerHeight/2,
+      vx: (Math.random()-.5)*15, vy: -Math.random()*15 - 5,
+      r: 4 + Math.random()*4,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      rot: Math.random()*Math.PI*2, vr: (Math.random()-.5)*.3,
+    });
+  }
+  let frames = 0;
+  (function frame() {
+    ctx.clearRect(0,0,c.width,c.height);
+    for (const p of pieces) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.4; p.rot += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.color; ctx.fillRect(-p.r/2, -p.r/2, p.r, p.r*1.6);
+      ctx.restore();
+    }
+    frames++;
+    if (frames < 180) requestAnimationFrame(frame);
+    else ctx.clearRect(0,0,c.width,c.height);
+  })();
+}
+
+/* ========================================================================
+ * LEADERBOARD
+ * ====================================================================== */
+const LB_KEY = 'givers_gain_scores';
+function getScores() {
+  try { return JSON.parse(localStorage.getItem(LB_KEY) || '[]'); }
+  catch { return []; }
+}
+function saveScore() {
+  const scores = getScores();
+  const entry = {
+    ts: Date.now(),
+    name: state.name,
+    industry: state.industry.name,
+    cuan: state.totalCuan,
+    stage: state.stageScores.filter(s => s > 0).length || 3,
+  };
+  state.lastSavedTs = entry.ts;
+  scores.push(entry);
+  scores.sort((a,b) => b.cuan - a.cuan);
+  localStorage.setItem(LB_KEY, JSON.stringify(scores.slice(0, CONFIG.LEADERBOARD_MAX)));
+}
+function showLeaderboard() {
+  const scores = getScores().slice(0, 10);
+  const body = document.getElementById('lbBody');
+  body.innerHTML = scores.map((s, i) => {
+    const me = s.ts === state.lastSavedTs ? ' class="me"' : '';
+    return `<tr${me}><td>${i+1}</td><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.industry)}</td><td>${s.stage}</td><td class="cuan">${fmtRp(s.cuan)}</td></tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center; padding:2rem; color:rgba(245,242,236,.4)">Belum ada skor.</td></tr>';
+  show('sLeader');
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+document.getElementById('lbReplay').addEventListener('click', () => location.reload());
+document.getElementById('lbReset').addEventListener('click', () => {
+  if (confirm('Reset semua skor leaderboard? (Operator only)')) {
+    localStorage.removeItem(LB_KEY);
+    showLeaderboard();
+  }
+});
+
+/* ========================================================================
+ * BOOTSTRAP
+ * ====================================================================== */
+if (state.name && state.name.length >= 2) {
+  show('sIndustry');
+} else {
+  show('sName');
+}
+</script>
+</body>
+</html>
