@@ -389,40 +389,49 @@ const ENTER_DIST2   = 4.0 * 4.0;
 
 const flashEl = document.getElementById('enterFlash');
 function flashScreen() {
-  gsap.fromTo(flashEl, { opacity: 0.5 }, { opacity: 0, duration: 0.6, ease: 'power2.out' });
+  gsap.fromTo(flashEl, { opacity: 0 }, { opacity: 0.45, duration: 0.45, ease: 'power2.in',
+    yoyo: true, repeat: 1 });
 }
 
-/* Efek "masuk ke bangunan" — zoom punch + flash + bangunan membesar lalu pindah */
+/* Efek "masuk ke bangunan" — sinematik: zoom-in lambat, hold di dalam, pull-back halus */
 function enterBuilding(b) {
   if (b.entering) return;
   b.entering = true;
 
   const deal = Math.floor(Math.random() * 21) + 20; // 20–40 (deal besar)
-  stagePoints += deal;
-  updateHUD();
-  showPop(`MASUK ${b.name}! +${deal}`, '#FF2D2A');
-  flashScreen();
 
-  // Camera zoom-in punch lalu balik
+  // Timeline sinematik
   gsap.killTweensOf(camState);
-  gsap.to(camState, { zoom: 0.6, duration: 0.28, ease: 'power3.in', onComplete: () => {
-    gsap.to(camState, { zoom: 1, duration: 0.55, ease: 'power2.out' });
-  }});
+  const tl = gsap.timeline();
 
-  // Bangunan membesar (seolah ditelan layar) lalu relokasi
-  gsap.to(b.sprite.scale, {
-    x: b.baseW * 1.4, y: b.baseH * 1.4, duration: 0.3, ease: 'power2.out',
-    onComplete: () => {
-      const nx = (Math.random() - 0.5) * 62;
-      const nz = (Math.random() - 0.5) * 62;
-      b.x = nx; b.z = nz;
-      b.sprite.position.set(nx, b.baseH / 2 + 0.2, nz);
-      b.sprite.scale.set(b.baseW, b.baseH, 1);
-      b.door.position.set(nx, 0.04, nz);
-      // dorong player keluar sedikit agar tidak langsung re-trigger
-      b.entering = false;
-    }
-  });
+  // 1) Zoom-in dalam & lambat (push masuk)
+  tl.to(camState, { zoom: 0.4, duration: 0.9, ease: 'power2.inOut' });
+  // 2) Flash + skor muncul saat sudah "di dalam"
+  tl.add(() => {
+    flashScreen();
+    stagePoints += deal;
+    updateHUD();
+    showPop(`MASUK ${b.name}! +${deal}`, '#FF2D2A');
+  }, 0.55);
+  // 3) Hold sebentar di dalam (momen sinematik)
+  tl.to(camState, { zoom: 0.4, duration: 0.45 });
+  // 4) Pull-back halus ke posisi normal
+  tl.to(camState, { zoom: 1, duration: 1.1, ease: 'power3.out' });
+
+  // Bangunan membesar perlahan (seolah ditelan layar), fade out, lalu relokasi
+  tl.to(b.sprite.scale, { x: b.baseW * 1.5, y: b.baseH * 1.5, duration: 0.9, ease: 'power2.inOut' }, 0);
+  tl.to(b.sprite.material, { opacity: 0.15, duration: 0.5, ease: 'power2.in' }, 0.55);
+  tl.add(() => {
+    const nx = (Math.random() - 0.5) * 62;
+    const nz = (Math.random() - 0.5) * 62;
+    b.x = nx; b.z = nz;
+    b.sprite.position.set(nx, b.baseH / 2 + 0.2, nz);
+    b.sprite.scale.set(b.baseW, b.baseH, 1);
+    b.sprite.material.opacity = 1;
+    b.door.position.set(nx, 0.04, nz);
+  }, 1.4);
+  // unlock setelah seluruh timeline selesai
+  tl.add(() => { b.entering = false; });
 }
 
 function checkCollisions() {
