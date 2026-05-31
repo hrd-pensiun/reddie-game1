@@ -51,6 +51,9 @@
   .breakdown .b { padding:1rem; border:1px solid var(--border-dim); border-radius:4px; background:var(--crimson-dim); }
   .breakdown .b .s { font-size:.65rem; letter-spacing:.2em; text-transform:uppercase; color:var(--white-60); }
   .breakdown .b .v { font-size:1.3rem; font-weight:700; color:var(--crimson); margin-top:.3rem; }
+  .breakdown .b-total { border-color:var(--crimson); background:rgba(255,45,42,0.16); box-shadow:0 0 24px var(--crimson-glow); }
+  .breakdown .b-total .s { color:var(--crimson); }
+  .breakdown .b-total .v { color:var(--white); }
   .rank-pill { display:inline-block; padding:.5rem 1.2rem; background:var(--crimson-dim);
     border:1px solid var(--border-mid); color:var(--crimson); font-size:.8rem;
     letter-spacing:.2em; text-transform:uppercase; margin:.8rem 0; }
@@ -112,7 +115,7 @@
 <!-- SCREEN: RESULT -->
 <section class="screen" id="sResult">
   <div class="screen-inner">
-    <p class="label">Hasil Akhir · TYFCB</p>
+    <p class="label">Total Score — Tiket Stage Terakhir</p>
     <h2 class="display-lg italic" style="margin-top:.5rem"><span id="resName">—</span></h2>
     <div class="result-cuan" id="resCuan">Rp 0</div>
     <div class="breakdown" id="resBreakdown"></div>
@@ -133,7 +136,7 @@
 <!-- SCREEN: GACHA -->
 <section class="screen" id="sGacha">
   <div class="screen-inner">
-    <p class="label">Hadiah Spesial</p>
+    <p class="label">Stage Terakhir · Hadiah Spesial</p>
     <h2 class="display-lg italic accent" style="margin:.5rem 0">Putar Gacha</h2>
     <div class="gacha-stage">
       <div class="gacha-ball" id="gachaBall">✦</div>
@@ -246,9 +249,9 @@ function showResult() {
 
   // Breakdown
   document.getElementById('resBreakdown').innerHTML = `
-    <div class="b"><div class="s">Stage 1 — Network</div><div class="v">${fmtRp(s1.cuan || 0)}</div></div>
-    <div class="b"><div class="s">Stage 2 — Isometric</div><div class="v">${fmtRp(s2.cuan || 0)}</div></div>
-    <div class="b"><div class="s">Total</div><div class="v">${fmtRp(totalCuan)}</div></div>
+    <div class="b"><div class="s">Stage 1 · TYFCB</div><div class="v">${fmtRp(s1.cuan || 0)}</div></div>
+    <div class="b"><div class="s">Stage 2 · Done Deal</div><div class="v">${fmtRp(s2.cuan || 0)}</div></div>
+    <div class="b b-total"><div class="s">Total Score</div><div class="v">${fmtRp(totalCuan)}</div></div>
   `;
 
   // Rank
