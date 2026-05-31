@@ -565,13 +565,29 @@ function startFountain() {
   // Hero Reddie (besar, depan-kiri)
   const hero = { x: cx-210, y: cy+90, offset:0, atkAt: performance.now()+400, scale:1.25 };
 
-  /* ---- DEKOR ARENA (pohon, obor, ember) — DotA-style ---- */
-  const trees = [];
-  for (let i=0;i<26;i++){
-    const a = Math.random()*Math.PI*2, r = 300 + Math.random()*Math.max(W,H)*0.32;
-    trees.push({ x: cx + Math.cos(a)*r, y: cy + Math.sin(a)*r*0.55 + 40, s: 0.7+Math.random()*0.8 });
+  /* ---- DEKOR ARENA — aset isometrik Reddie Universe + pohon (DotA-style) ---- */
+  const isoKota = new Image(); isoKota.src = 'assets/iso_kota-opt.png';
+  const isoPark = new Image(); isoPark.src = 'assets/iso_park-opt.png';
+  const isoWit  = new Image(); isoWit.src  = 'assets/iso_wit-opt.png';
+  const ISO_W = Math.min(W,H) * 0.2;                 // lebar bangunan dekor (proporsional)
+  const ringR = Math.min(W,H) * 0.56;                // radius cincin dekor di luar arena
+  const scenery = [];
+  // Bangunan iso tersebar rapi di cincin (offset agar tidak menutup lane)
+  const bSet = [isoPark, isoKota, isoWit, isoKota, isoPark, isoWit, isoKota, isoPark];
+  const nB = 8;
+  for (let i=0;i<nB;i++){
+    const a = (i/nB)*Math.PI*2 + Math.PI/nB;
+    scenery.push({ type:'b', img:bSet[i],
+      x: cx + Math.cos(a)*ringR, y: cy + Math.sin(a)*ringR*0.52 + 40,
+      w: ISO_W*(0.85+Math.random()*0.3) });
   }
-  trees.sort((a,b)=>a.y-b.y);
+  // Pohon mengisi sela antar-bangunan
+  for (let i=0;i<20;i++){
+    const a = Math.random()*Math.PI*2, r = ringR*(0.74+Math.random()*0.6);
+    scenery.push({ type:'t', x: cx+Math.cos(a)*r, y: cy+Math.sin(a)*r*0.52+40, s:0.6+Math.random()*0.85 });
+  }
+  scenery.sort((a,b)=>a.y-b.y);                       // depth sort
+
   const torches = [ {x:cx-150,y:cy+30},{x:cx+150,y:cy+30},{x:cx-110,y:cy-90},{x:cx+110,y:cy-90} ];
   const embers = Array.from({length:40}, () => ({ x:Math.random()*W, y:Math.random()*H, vy:-8-Math.random()*14, r:0.6+Math.random()*1.8, a:Math.random()*0.4 }));
 
@@ -630,8 +646,11 @@ function startFountain() {
     ctx.globalAlpha=1;
     ctx.restore();
 
-    // pohon di sekeliling (cluster pine gelap) — depth via sort
-    trees.forEach(t => drawTree(t.x, t.y, t.s));
+    // dekor (bangunan iso + pohon) — sudah depth-sorted
+    scenery.forEach(it => {
+      if (it.type==='t') drawTree(it.x, it.y, it.s);
+      else drawBuilding(it.img, it.x, it.y, it.w);
+    });
 
     // obor menyala
     torches.forEach((t,i) => drawTorch(t.x, t.y, now, i));
@@ -659,6 +678,15 @@ function startFountain() {
       ctx.strokeStyle='rgba(93,202,165,0.12)'; ctx.lineWidth=1; ctx.stroke();
     }
     ctx.restore();
+  }
+
+  function drawBuilding(img, x, y, w){
+    const h = w*0.5625;  // rasio 16:9
+    // bayangan halus di tanah
+    ctx.fillStyle='rgba(0,0,0,0.32)';
+    ctx.beginPath(); ctx.ellipse(x, y-2, w*0.34, w*0.085, 0, 0, Math.PI*2); ctx.fill();
+    if (img.complete && img.naturalWidth) ctx.drawImage(img, x-w/2, y-h, w, h);
+    else { ctx.fillStyle='#1a0a0a'; ctx.fillRect(x-w*0.3, y-h*0.7, w*0.6, h*0.7); }
   }
 
   function drawTorch(x,y,now,seed){
