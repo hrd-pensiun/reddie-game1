@@ -389,6 +389,10 @@ function buildStats() {
   dist.sort((a,b)=>b.count-a.count);
   const tot = dist.reduce((a,b)=>a+b.count,0);
   dist.forEach(d => d.pct = Math.round(d.count/tot*100));
+  // Dampak bisnis dari WIT saja: bonus WIT stage 1 (poin×1000) + jackpot done-deal stage 2
+  const witStage1 = (s1.witBonus || 0) * 1000;
+  const witStage2 = (s2.jackpot || 0);
+  const witImpact = witStage1 + witStage2;
   return {
     name: run.name || 'Player',
     industry: (run.industry && run.industry.name) || 'Teknologi',
@@ -397,6 +401,7 @@ function buildStats() {
     doneDeals: s2.doneDeals || 0,
     top: dist[0],
     dist: dist.slice(0,5),
+    witImpact, witStage1, witStage2,
   };
 }
 const STATS = buildStats();
@@ -418,7 +423,9 @@ function showExperience() {
   const dash = document.getElementById('expDash');
   const cta = document.getElementById('expCta');
   reddie.classList.remove('mini');
-  dash.style.opacity = 0; cta.style.opacity = 0;
+  dash.style.opacity = 0; dash.style.display = 'flex'; dash.style.filter = 'none'; cta.style.opacity = 0;
+  document.getElementById('expDialog').style.maxWidth = '620px';
+  document.getElementById('expDialog').querySelector('.who').textContent = 'Reddie';
 
   gsap.fromTo(reddie, { y:120, opacity:0 }, { y:0, opacity:1, duration:.8, ease:'back.out(1.6)' });
 
@@ -433,10 +440,12 @@ function showExperience() {
       <div class="stat-card"><div class="num" data-n="${STATS.connections}">0</div><div class="lbl">Total Koneksi</div><div class="sub">stage 1 & 2</div></div>
       <div class="stat-card"><div class="num" style="font-size:1.5rem">${STATS.top.name}</div><div class="lbl">Referral #1</div><div class="sub">${STATS.top.count}x (${STATS.top.pct}%)</div></div>
       <div class="stat-card"><div class="num" data-rp="${STATS.totalCuan}">Rp 0</div><div class="lbl">Total Score</div><div class="sub">${STATS.doneDeals} done deal</div></div>`;
-    document.getElementById('expBars').innerHTML = STATS.dist.map(d => `
-      <div class="bar-row"><span class="bl">${d.name}</span>
-        <span class="bar-track"><span class="bar-fill" style="background:${INDUSTRY_COLORS[d.name]||'#C9A84C'}"></span></span>
-        <span class="bp">${d.pct}%</span></div>`).join('');
+    document.getElementById('expBars').innerHTML = STATS.dist.map(d => {
+      const c = INDUSTRY_COLORS[d.name] || '#C9A84C';
+      return `<div class="bar-row"><span class="bl">${d.name}</span>
+        <span class="bar-track"><span class="bar-fill" data-w="${d.pct}" style="background:${c};box-shadow:0 0 10px ${c}66"></span></span>
+        <span class="bp">${d.pct}%</span></div>`;
+    }).join('');
 
     gsap.to(dash, { opacity:1, duration:.5 });
     // count-up
@@ -448,11 +457,12 @@ function showExperience() {
       const n = +el.dataset.rp, o = {v:0};
       gsap.to(o, { v:n, duration:1.6, ease:'power2.out', onUpdate:()=>el.textContent=fmtRp(Math.floor(o.v)) });
     });
-    // bars fill — pakai CSS transition (robust): set width langsung di frame berikutnya
-    const fills = document.querySelectorAll('#expBars .bar-fill');
-    STATS.dist.forEach((d,i) => {
-      setTimeout(() => { if (fills[i]) fills[i].style.width = d.pct + '%'; }, 400 + i*140);
-    });
+    // bars fill — double rAF agar transisi width dari 0 jalan, tapi target dijamin terpasang
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.querySelectorAll('#expBars .bar-fill').forEach(f => {
+        f.style.width = Math.max(4, +f.dataset.w) + '%';
+      });
+    }));
 
     // FASE 2 — INSIGHT nyata dari Reddie (tahan ≈7s, dashboard tetap jelas)
     setTimeout(showInsight, 2600);
@@ -482,12 +492,32 @@ function showExperience() {
 
   function finishExperience() {
     gsap.to(cta, { opacity:0, duration:.3 });
-    gsap.to(dash, { opacity:0, duration:.4 });
-    typeText(say, `Summarizing business data... done! Sekarang saatnya panen hasilnya! 🎉`, 30, () => {
-      setTimeout(() => {
-        gsap.to('#sExperience', { opacity:0, duration:.6, onComplete: showFountain });
-      }, 1800);
+    gsap.to(dash, { opacity:0, duration:.4, onComplete:() => dash.style.display='none' });
+    const dialog = document.getElementById('expDialog');
+    const who = dialog.querySelector('.who');
+    typeText(say, `Summarizing business data...`, 34, () => {
+      setTimeout(revealSummary, 700);
     });
+
+    function revealSummary() {
+      who.textContent = 'Reddie · Business AI';
+      const impact = STATS.witImpact;
+      const impactLine = impact > 0
+        ? `Buktinya, <b>WIT</b> telah memberi dampak bisnis sebesar <b style="color:var(--gold)">${fmtRp(impact)}</b> untukmu — dari koneksi &amp; closing deal bersama WIT di Stage 1 &amp; 2.`
+        : `WIT siap memberi dampak nyata: satu koneksi tepat bisa membuka deal bernilai miliaran.`;
+      dialog.style.maxWidth = '720px';
+      say.innerHTML = `
+        <div style="font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:.6rem">✦ Ringkasan &amp; Rekomendasi</div>
+        Jaringan adalah aset terbesarmu. Prinsip <b>Givers Gain</b> terbukti — makin banyak <b>referral</b> yang kamu beri, makin besar peluang closing yang kembali padamu.<br><br>
+        Dan <b style="color:var(--gold)">Transformasi Digital</b> mempercepat semuanya. ${impactLine}<br><br>
+        Bayangkan ini diterapkan di bisnis nyatamu — makin terhubung, makin <b style="color:var(--gold)">cuan</b>. 🚀`;
+      gsap.fromTo(dialog, { opacity:0, y:14 }, { opacity:1, y:0, duration:.6, ease:'power2.out' });
+      // tahan summary ~7.5 dtk lalu lanjut ke fountain
+      setTimeout(() => {
+        say.innerHTML = `Sekarang... saatnya panen hasilnya! 🎉`;
+        setTimeout(() => gsap.to('#sExperience', { opacity:0, duration:.6, onComplete: showFountain }), 1600);
+      }, 7500);
+    }
   }
 }
 
