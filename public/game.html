@@ -294,8 +294,8 @@ const INDUSTRIES = [
 const STAGES = [
   {
     n: 1,
-    npc: { name: 'Pak Budi', role: 'FnB Supplier', emoji: '👨‍🍳', color: '#7a5230' },
-    dialog: 'Halo! Saya Pak Budi. Tolong kenalkan saya dengan pemilik Hotel, Leisure Park, dan Manufaktur. Bahan baku saya sangat cocok untuk mereka!',
+    npc: { name: 'Pak Budi', role: 'FnB Supplier — BNI Rise Chapter', emoji: '👨‍🍳', color: '#7a5230' },
+    dialog: 'Selamat datang di jaringan BNI Rise! Gunakan tombol ↑ ↓ untuk berpindah jalur. Kumpulkan sebanyak mungkin koneksi bisnis (gambar industri) — setiap koneksi punya nilai Deal 1–5 bintang yang jadi referral-mu. Hindari tengkorak 💀 agar poinmu tidak berkurang. Semakin banyak referral, semakin besar TYFCB-mu!',
     coins: [
       { label: 'Hotel', value: 3, color: '#3a9d5c' },
       { label: 'Leisure', value: 2, color: '#e0b431' },
@@ -784,6 +784,8 @@ function updateCuanHUD() {
 }
 
 /* ---- TOOLTIP helper ---- */
+const HUD_BOTTOM = 120; // piksel — di bawah progress bar + HUD
+
 function drawTooltip(e, tipBottomY) {
   if (!e.npc) return;
   const { nama, pt, klas, deal } = e.npc;
@@ -801,10 +803,15 @@ function drawTooltip(e, tipBottomY) {
   const bw    = maxW + pad * 2;
   const bh    = lines.length * lh + pad * 1.4;
   let bx      = e.x - bw / 2;
-  let by      = tipBottomY - bh - 4;
-  // clamp horizontally
+  // kalau tooltip bakal melewati HUD, taruh di BAWAH coin (tipBottomY + coin diameter + gap)
+  const coinDiam = e.r * 2;
+  let by = tipBottomY - bh - 4;
+  if (by < HUD_BOTTOM) {
+    by = tipBottomY + coinDiam + 4; // flip ke bawah
+  }
+  // clamp horizontal & vertical
   bx = Math.max(4, Math.min(gameW - bw - 4, bx));
-  by = Math.max(4, by);
+  by = Math.max(HUD_BOTTOM, Math.min(gameH - bh - 4, by));
 
   // bubble background
   gctx.save();
