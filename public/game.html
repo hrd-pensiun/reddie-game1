@@ -628,11 +628,12 @@ gameCanvas.addEventListener('touchend', e => {
 
 /* SPAWN */
 function spawnCoin() {
-  const a = COIN_ASSETS[Math.floor(Math.random() * COIN_ASSETS.length)];
+  const a   = COIN_ASSETS[Math.floor(Math.random() * COIN_ASSETS.length)];
+  const npc = randomNPC(a.slug);     // deal 1–5
   game.entities.push({
     type: 'coin', x: gameW + 40, lane: Math.floor(Math.random() * LANES),
-    r: 34, label: a.slug, value: a.value, color: '#FF2D2A', img: a.img,
-    npc: randomNPC(a.slug),
+    r: 34, label: a.slug, value: npc.deal, color: '#FF2D2A', img: a.img,
+    npc,
   });
 }
 function spawnWit() {
@@ -683,8 +684,8 @@ function gameLoop(t) {
 
 function update(dt, t) {
   const elapsed = (t - game.startTime) / 1000;
-  // start faster, ramp aggressively every 10s
-  game.scrollSpeed = 320 + Math.floor(elapsed / 10) * 80;
+  // base 240, ramp +40 every 15s (lebih smooth)
+  game.scrollSpeed = 240 + Math.floor(elapsed / 15) * 40;
 
   // Player lerp
   game.player.y += (game.player.targetY - game.player.y) * 0.25;
@@ -864,9 +865,12 @@ function render(t) {
       grad.addColorStop(1, 'rgba(201,168,76,0)');
       gctx.fillStyle = grad;
       gctx.beginPath(); gctx.arc(e.x, y, r * 2.2, 0, Math.PI * 2); gctx.fill();
-      // WIT image or gold circle
+      // WIT image or gold circle — preserve aspect ratio (tidak lonjong)
       if (isReady(witImg)) {
-        gctx.drawImage(witImg, e.x - r, y - r, r * 2, r * 2);
+        const iw = witImg.naturalWidth, ih = witImg.naturalHeight;
+        const scale = Math.min((r * 2) / iw, (r * 2) / ih);
+        const dw = iw * scale, dh = ih * scale;
+        gctx.drawImage(witImg, e.x - dw / 2, y - dh / 2, dw, dh);
       } else {
         gctx.fillStyle = e.color;
         gctx.beginPath(); gctx.arc(e.x, y, r, 0, Math.PI * 2); gctx.fill();
