@@ -314,8 +314,8 @@ const INDUSTRIES = [
 const STAGES = [
   {
     n: 1,
-    npc: { name: 'Pak Budi', role: 'FnB Supplier — BNI Rise Chapter', emoji: '👨‍🍳', color: '#7a5230' },
-    dialog: 'Selamat datang di jaringan BNI Rise! Gunakan tombol ↑ ↓ untuk berpindah jalur. Kumpulkan sebanyak mungkin koneksi bisnis (gambar industri) — setiap koneksi punya nilai Deal 1–5 bintang yang jadi referral-mu. Hindari tengkorak 💀 agar poinmu tidak berkurang. Semakin banyak referral, semakin besar TYFCB-mu!',
+    npc: { name: 'Pak Irfan', role: 'CEO WIT Indonesia', emoji: '👨‍💼', color: '#1a0202', avatar: 'assets/ceo-avatar.png' },
+    dialog: 'Selamat datang di Reddie\'s Universe by WIT.ID! Gunakan tombol ↑ ↓ untuk berpindah jalur. Kumpulkan sebanyak mungkin koneksi bisnis (gambar industri) — setiap koneksi punya nilai Deal 1–5 bintang yang jadi referral-mu. Hindari tengkorak 💀 agar poinmu tidak berkurang. Semakin banyak referral, semakin besar TYFCB-mu!',
     coins: [
       { label: 'Hotel', value: 3, color: '#3a9d5c' },
       { label: 'Leisure', value: 2, color: '#e0b431' },
@@ -488,8 +488,18 @@ INDUSTRIES.forEach(ind => {
 function showBriefing() {
   const stage = STAGES[state.stageIdx];
   document.getElementById('briefStage').textContent = `Stage ${stage.n} / 3`;
-  document.getElementById('briefAvatar').textContent = stage.npc.emoji;
-  document.getElementById('briefAvatar').style.background = stage.npc.color;
+  const avatarEl = document.getElementById('briefAvatar');
+  if (stage.npc.avatar) {
+    avatarEl.textContent = '';
+    avatarEl.style.backgroundImage = `url('${stage.npc.avatar}')`;
+    avatarEl.style.backgroundSize = 'cover';
+    avatarEl.style.backgroundPosition = 'center';
+    avatarEl.style.background = `#1a0202 url('${stage.npc.avatar}') center/cover`;
+  } else {
+    avatarEl.style.backgroundImage = 'none';
+    avatarEl.textContent = stage.npc.emoji;
+    avatarEl.style.background = stage.npc.color;
+  }
   document.getElementById('briefName').textContent = stage.npc.name;
   document.getElementById('briefRole').textContent = stage.npc.role;
   document.getElementById('briefDialog').textContent = stage.dialog;
