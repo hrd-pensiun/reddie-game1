@@ -90,7 +90,8 @@ export function HoloInterface({ sceneKey = 'manifesto' as const }) {
       </group>
 
       {/* Trend line — animated */}
-      <line ref={linesRef as React.Ref<THREE.Line>} position={[0, 1.6, 0.07]} geometry={lineGeometry}>
+      {/* @ts-expect-error: drei Line vs SVGLineElement conflict — this is a Three.js line primitive */}
+      <line ref={linesRef} position={[0, 1.6, 0.07]} geometry={lineGeometry}>
         <lineBasicMaterial ref={lineMatRef} color="#FF2D2A" linewidth={2} transparent opacity={0} toneMapped={false} />
       </line>
 
