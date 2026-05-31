@@ -271,7 +271,7 @@
 const CONFIG = {
   GACHA_MIN_CUAN: 30000,
   STAGE_DURATION: 45,
-  WIT_COIN_VALUE: 10,
+  WIT_COIN_VALUE: 100,
   WIT_COIN_MAX_PER_STAGE: 3,
   CUAN_PER_POINT: 1000,
   LEADERBOARD_MAX: 50,
@@ -509,6 +509,37 @@ let skullImg = null;
   i.src = 'assets/obstacle-skull.png';
 })();
 
+/* WIT logo image */
+let witImg = null;
+(function loadWit() {
+  const i = new Image();
+  i.onload = () => { witImg = i; };
+  i.onerror = () => { /* fallback ke lingkaran emas */ };
+  i.src = 'assets/WIT-logo.png';
+})();
+
+/* NPC data per klasifikasi coin — untuk tooltip */
+const NPC_NAMES = ['Budi','Sari','Rian','Hendra','Dewi','Aditya','Rini','Fajar','Wulan','Agus','Maya','Doni','Lia','Bayu','Fitri'];
+const PT_PREFIX = ['PT','CV','UD','PT'];
+const PT_NAMES  = ['Nusantara Maju','Karya Prima','Sukses Abadi','Cipta Solusi','Mitra Sejahtera','Indo Global','Artha Mandiri','Bina Usaha','Graha Persada','Delta Perkasa'];
+
+const COIN_NPC = {
+  hospitality: { klasifikasi:'Hospitality & Hotel' },
+  manufaktur:  { klasifikasi:'Manufaktur & Industri' },
+  pabrik:      { klasifikasi:'Pabrik & Energi' },
+  tambang:     { klasifikasi:'Konstruksi & Tambang' },
+  toko:        { klasifikasi:'Retail & Commerce' },
+};
+
+function randomNPC(slug) {
+  const nama  = NPC_NAMES[Math.floor(Math.random() * NPC_NAMES.length)];
+  const prefix= PT_PREFIX[Math.floor(Math.random() * PT_PREFIX.length)];
+  const pt    = PT_NAMES[Math.floor(Math.random() * PT_NAMES.length)];
+  const deal  = Math.floor(Math.random() * 5) + 1;
+  const klas  = (COIN_NPC[slug] || {}).klasifikasi || slug;
+  return { nama, pt: `${prefix} ${pt}`, klas, deal };
+}
+
 const game = {
   running: false,
   stage: null,
@@ -601,12 +632,14 @@ function spawnCoin() {
   game.entities.push({
     type: 'coin', x: gameW + 40, lane: Math.floor(Math.random() * LANES),
     r: 34, label: a.slug, value: a.value, color: '#FF2D2A', img: a.img,
+    npc: randomNPC(a.slug),
   });
 }
 function spawnWit() {
   game.entities.push({
     type: 'wit', x: gameW + 40, lane: Math.floor(Math.random() * LANES),
-    r: 42, label: 'WIT', value: CONFIG.WIT_COIN_VALUE, color: '#C9A84C', shimmer: 0,
+    r: 46, label: 'WIT', value: CONFIG.WIT_COIN_VALUE, color: '#C9A84C', shimmer: 0,
+    npc: { nama:'Tim WIT', pt:'PT WIT Indonesia', klas:'Tech & Digital Solutions', deal:5 },
   });
   game.witCount++;
 }
@@ -650,8 +683,8 @@ function gameLoop(t) {
 
 function update(dt, t) {
   const elapsed = (t - game.startTime) / 1000;
-  // ramp speed every 15s
-  game.scrollSpeed = 220 + Math.floor(elapsed / 15) * 60;
+  // start faster, ramp aggressively every 10s
+  game.scrollSpeed = 320 + Math.floor(elapsed / 10) * 80;
 
   // Player lerp
   game.player.y += (game.player.targetY - game.player.y) * 0.25;
@@ -749,6 +782,64 @@ function updateCuanHUD() {
   document.getElementById('hudStage').textContent = totalPoints();
 }
 
+/* ---- TOOLTIP helper ---- */
+function drawTooltip(e, tipBottomY) {
+  if (!e.npc) return;
+  const { nama, pt, klas, deal } = e.npc;
+  const lines = [
+    `Halo Pak ${nama}`,
+    `${pt}`,
+    `${klas}`,
+    `Deal: ${deal} ⭐`,
+  ];
+  const pad   = 10;
+  const lh    = 15;
+  const fs    = 11;
+  gctx.font = `${fs}px 'DM Sans',sans-serif`;
+  const maxW  = Math.max(...lines.map(l => gctx.measureText(l).width));
+  const bw    = maxW + pad * 2;
+  const bh    = lines.length * lh + pad * 1.4;
+  let bx      = e.x - bw / 2;
+  let by      = tipBottomY - bh - 4;
+  // clamp horizontally
+  bx = Math.max(4, Math.min(gameW - bw - 4, bx));
+  by = Math.max(4, by);
+
+  // bubble background
+  gctx.save();
+  gctx.globalAlpha = 0.88;
+  gctx.fillStyle = '#0d0203';
+  gctx.strokeStyle = 'rgba(255,45,42,0.5)';
+  gctx.lineWidth = 1;
+  const rx = 6;
+  gctx.beginPath();
+  gctx.moveTo(bx + rx, by);
+  gctx.lineTo(bx + bw - rx, by);
+  gctx.quadraticCurveTo(bx + bw, by, bx + bw, by + rx);
+  gctx.lineTo(bx + bw, by + bh - rx);
+  gctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - rx, by + bh);
+  gctx.lineTo(bx + rx, by + bh);
+  gctx.quadraticCurveTo(bx, by + bh, bx, by + bh - rx);
+  gctx.lineTo(bx, by + rx);
+  gctx.quadraticCurveTo(bx, by, bx + rx, by);
+  gctx.closePath();
+  gctx.fill();
+  gctx.stroke();
+  gctx.globalAlpha = 1;
+
+  // text
+  lines.forEach((ln, i) => {
+    const isHeader = i === 0;
+    const isDeal   = i === 3;
+    gctx.fillStyle = isHeader ? '#FF2D2A' : isDeal ? '#C9A84C' : '#F5F2EC';
+    gctx.font = `${isHeader ? 'bold ' : ''}${fs}px 'DM Sans',sans-serif`;
+    gctx.textAlign = 'left';
+    gctx.textBaseline = 'top';
+    gctx.fillText(ln, bx + pad, by + pad * 0.7 + i * lh);
+  });
+  gctx.restore();
+}
+
 function render(t) {
   gctx.clearRect(0, 0, gameW, gameH);
 
@@ -767,22 +858,28 @@ function render(t) {
     const y = laneY[e.lane];
     if (e.type === 'wit') {
       const r = e.r + Math.sin(e.shimmer) * 3;
-      const grad = gctx.createRadialGradient(e.x, y, 0, e.x, y, r * 2);
-      grad.addColorStop(0, 'rgba(201,168,76,0.6)');
+      // gold glow
+      const grad = gctx.createRadialGradient(e.x, y, 0, e.x, y, r * 2.2);
+      grad.addColorStop(0, 'rgba(201,168,76,0.7)');
       grad.addColorStop(1, 'rgba(201,168,76,0)');
       gctx.fillStyle = grad;
-      gctx.beginPath(); gctx.arc(e.x, y, r * 2, 0, Math.PI * 2); gctx.fill();
-      gctx.fillStyle = e.color;
-      gctx.beginPath(); gctx.arc(e.x, y, r, 0, Math.PI * 2); gctx.fill();
-      gctx.fillStyle = '#07090D';
-      gctx.font = `bold 14px 'DM Sans', sans-serif`;
-      gctx.textAlign = 'center';
-      gctx.textBaseline = 'middle';
-      gctx.fillText(e.label, e.x, y);
+      gctx.beginPath(); gctx.arc(e.x, y, r * 2.2, 0, Math.PI * 2); gctx.fill();
+      // WIT image or gold circle
+      if (isReady(witImg)) {
+        gctx.drawImage(witImg, e.x - r, y - r, r * 2, r * 2);
+      } else {
+        gctx.fillStyle = e.color;
+        gctx.beginPath(); gctx.arc(e.x, y, r, 0, Math.PI * 2); gctx.fill();
+        gctx.fillStyle = '#07090D';
+        gctx.font = `bold 13px 'DM Sans',sans-serif`;
+        gctx.textAlign = 'center'; gctx.textBaseline = 'middle';
+        gctx.fillText('WIT', e.x, y);
+      }
+      // Tooltip
+      drawTooltip(e, y - r - 6);
     } else if (e.type === 'coin') {
       const size = e.r * 2;
       if (isReady(e.img)) {
-        // soft crimson glow di belakang gambar
         const grad = gctx.createRadialGradient(e.x, y, 0, e.x, y, size);
         grad.addColorStop(0, 'rgba(255,45,42,0.35)');
         grad.addColorStop(1, 'rgba(255,45,42,0)');
@@ -790,10 +887,11 @@ function render(t) {
         gctx.beginPath(); gctx.arc(e.x, y, size, 0, Math.PI * 2); gctx.fill();
         gctx.drawImage(e.img, e.x - size/2, y - size/2, size, size);
       } else {
-        // fallback: lingkaran crimson
         gctx.fillStyle = e.color;
         gctx.beginPath(); gctx.arc(e.x, y, e.r, 0, Math.PI * 2); gctx.fill();
       }
+      // Tooltip
+      drawTooltip(e, y - e.r - 6);
     } else if (e.type === 'obstacle') {
       const size = Math.max(e.w, e.h);
       if (isReady(skullImg)) {
