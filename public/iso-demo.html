@@ -66,6 +66,11 @@
     font-size:3rem; font-weight:700; color:var(--crimson); pointer-events:none;
     z-index:20; opacity:0; text-shadow:0 0 30px var(--crimson-glow);
   }
+  /* Flash saat masuk bangunan */
+  #enterFlash {
+    position:fixed; inset:0; z-index:18; pointer-events:none; opacity:0;
+    background:radial-gradient(circle at 50% 50%, rgba(255,45,42,0.55) 0%, rgba(255,45,42,0.15) 40%, transparent 75%);
+  }
 
   /* Transition overlay */
   #transitionOverlay {
@@ -112,10 +117,13 @@
 <div id="hint">
   <b>Stage 2 — Isometric Network</b><br>
   <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑↓←→</kbd> gerak<br>
-  Kumpulkan referral, hindari obstacle!
+  Masuki bangunan (lingkaran merah) untuk closing deal besar!<br>
+  Kumpulkan referral, hindari obstacle 💀
+
 </div>
 
 <div id="scorePop">+10</div>
+<div id="enterFlash"></div>
 
 <!-- Transition to Stage 3 -->
 <div id="transitionOverlay">
@@ -161,6 +169,7 @@ const YAW   = Math.PI / 4;
 const PITCH = Math.atan(Math.sin(Math.PI / 4));
 const DIST  = 55;
 const FRUSTUM = 22;
+const camState = { zoom: 1 };   // <1 = zoom-in (efek "masuk")
 
 function makeCamera() {
   const a = innerWidth / innerHeight;
@@ -215,6 +224,9 @@ ISO_BUILDINGS.forEach(s => {
   isoTex[s] = t;
 });
 
+const ISO_NAMES = { iso_kota:'Kota Bisnis', iso_park:'Business Park', iso_wit:'WIT HQ' };
+const buildings = [];
+
 function building(x, z) {
   const src = ISO_BUILDINGS[Math.floor(Math.random() * ISO_BUILDINGS.length)];
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: isoTex[src], transparent: true }));
@@ -223,6 +235,14 @@ function building(x, z) {
   sprite.scale.set(w, h, 1);
   sprite.position.set(x, h / 2 + 0.2, z); // duduk di atas tanah
   scene.add(sprite);
+  // glow ring penanda "pintu masuk"
+  const door = new THREE.Mesh(
+    new THREE.RingGeometry(2.2, 2.8, 32),
+    new THREE.MeshBasicMaterial({ color:0xFF2D2A, transparent:true, opacity:0.4, side:THREE.DoubleSide })
+  );
+  door.rotation.x = -Math.PI/2; door.position.set(x, 0.04, z);
+  scene.add(door);
+  buildings.push({ sprite, door, x, z, baseW:w, baseH:h, name:ISO_NAMES[src], entering:false });
 }
 [[-12,-9],[-2,11],[10,5],[14,-11],[-16,7],[-9,-16],[16,14],[-19,-3],[6,-14],[18,2]]
   .forEach(([x,z]) => building(x,z));
@@ -336,6 +356,12 @@ function updateMovement(dt) {
     playerMesh.position.z + DIST * Math.cos(PITCH) * Math.cos(YAW)
   );
   camera.lookAt(playerMesh.position);
+  // Apply zoom (efek masuk bangunan)
+  const fz = FRUSTUM * camState.zoom;
+  const a = innerWidth / innerHeight;
+  camera.left = -fz * a / 2; camera.right = fz * a / 2;
+  camera.top = fz / 2;       camera.bottom = -fz / 2;
+  camera.updateProjectionMatrix();
 }
 
 /* ===== SCORING ===== */
@@ -359,9 +385,55 @@ function showPop(text, color) {
 /* ===== COLLISION ===== */
 const COLLECT_DIST2 = 2.2 * 2.2;
 const HIT_DIST2     = 1.8 * 1.8;
+const ENTER_DIST2   = 4.0 * 4.0;
+
+const flashEl = document.getElementById('enterFlash');
+function flashScreen() {
+  gsap.fromTo(flashEl, { opacity: 0.5 }, { opacity: 0, duration: 0.6, ease: 'power2.out' });
+}
+
+/* Efek "masuk ke bangunan" — zoom punch + flash + bangunan membesar lalu pindah */
+function enterBuilding(b) {
+  if (b.entering) return;
+  b.entering = true;
+
+  const deal = Math.floor(Math.random() * 21) + 20; // 20–40 (deal besar)
+  stagePoints += deal;
+  updateHUD();
+  showPop(`MASUK ${b.name}! +${deal}`, '#FF2D2A');
+  flashScreen();
+
+  // Camera zoom-in punch lalu balik
+  gsap.killTweensOf(camState);
+  gsap.to(camState, { zoom: 0.6, duration: 0.28, ease: 'power3.in', onComplete: () => {
+    gsap.to(camState, { zoom: 1, duration: 0.55, ease: 'power2.out' });
+  }});
+
+  // Bangunan membesar (seolah ditelan layar) lalu relokasi
+  gsap.to(b.sprite.scale, {
+    x: b.baseW * 1.4, y: b.baseH * 1.4, duration: 0.3, ease: 'power2.out',
+    onComplete: () => {
+      const nx = (Math.random() - 0.5) * 62;
+      const nz = (Math.random() - 0.5) * 62;
+      b.x = nx; b.z = nz;
+      b.sprite.position.set(nx, b.baseH / 2 + 0.2, nz);
+      b.sprite.scale.set(b.baseW, b.baseH, 1);
+      b.door.position.set(nx, 0.04, nz);
+      // dorong player keluar sedikit agar tidak langsung re-trigger
+      b.entering = false;
+    }
+  });
+}
 
 function checkCollisions() {
   const px = playerMesh.position.x, pz = playerMesh.position.z;
+
+  // Masuk bangunan
+  for (const b of buildings) {
+    if (b.entering) continue;
+    const dx = b.x - px, dz = b.z - pz;
+    if (dx*dx + dz*dz < ENTER_DIST2) enterBuilding(b);
+  }
 
   for (const c of coins) {
     if (c.collected) continue;
@@ -456,6 +528,11 @@ function loop(now) {
 
   // Obstacle rotation
   obstacles.forEach(o => { o.mesh.rotation.y += dt * 0.8; });
+
+  // Door ring pulse
+  buildings.forEach((b, i) => {
+    b.door.material.opacity = 0.3 + Math.abs(Math.sin(now * 0.003 + i)) * 0.35;
+  });
 
   // Coin float
   coins.forEach((c, i) => {
