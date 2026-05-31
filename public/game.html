@@ -561,6 +561,16 @@ let reddieImg = null;
   tryLoad('assets/reddie.png', () => tryLoad('assets/reddie.gif', () => {}));
 })();
 
+/* Walk spritesheet — 6 frame (110x128 per frame) untuk animasi lari */
+let walkImg = null;
+const WALK_FRAMES = 6, WALK_FW = 110, WALK_FH = 128;
+(function loadWalk() {
+  const i = new Image();
+  i.onload = () => { walkImg = i; };
+  i.src = 'assets/reddie_walk.png';
+})();
+let walkFrame = 0, walkTimer = 0;
+
 /* Coin assets — 5 gambar industri isometrik, masing-masing bernilai 10 poin.
  * Mencoba assets/coin-<slug>.png dulu, fallback ke assets/<slug>.png (file yang sudah ada),
  * lalu fallback ke lingkaran crimson kalau dua-duanya tidak ada. */
@@ -1021,7 +1031,17 @@ function render(t) {
     gctx.shadowColor = '#E8302A';
     gctx.shadowBlur = 40;
   }
-  if (reddieImg) {
+  // advance walk animation (~12 fps)
+  walkTimer += 1;
+  if (walkTimer >= 5) { walkTimer = 0; walkFrame = (walkFrame + 1) % WALK_FRAMES; }
+
+  if (walkImg) {
+    gctx.drawImage(
+      walkImg,
+      walkFrame * WALK_FW, 0, WALK_FW, WALK_FH,   // source frame
+      px - pw/2, py - ph/2, pw, ph                 // dest
+    );
+  } else if (reddieImg) {
     gctx.drawImage(reddieImg, px - pw/2, py - ph/2, pw, ph);
   } else {
     // placeholder: red rounded rect

@@ -247,13 +247,38 @@ function building(x, z) {
 [[-12,-9],[-2,11],[10,5],[14,-11],[-16,7],[-9,-16],[16,14],[-19,-3],[6,-14],[18,2]]
   .forEach(([x,z]) => building(x,z));
 
-/* ===== PLAYER (Reddie sprite) ===== */
-const reddieTex = new THREE.TextureLoader().load('assets/reddie.png');
-reddieTex.colorSpace = THREE.SRGBColorSpace;
-const playerMesh = new THREE.Sprite(new THREE.SpriteMaterial({ map: reddieTex, transparent: true }));
-playerMesh.scale.set(2.6, 3.4, 1);        // rasio ~3:4
-playerMesh.position.set(0, 1.7, 0);
+/* ===== PLAYER (Reddie animated sprite dari spritesheet) ===== */
+function loadAnim(file, frames) {
+  const tex = new THREE.TextureLoader().load('assets/' + file);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.LinearFilter;
+  tex.repeat.set(1 / frames, 1);
+  return { tex, frames };
+}
+const ANIMS = {
+  idle: loadAnim('reddie_idle.png', 3),
+  walk: loadAnim('reddie_walk.png', 6),
+};
+let curAnim = 'idle', animFrame = 0, animTime = 0, facing = 1, playerMoving = false;
+
+const playerMat = new THREE.SpriteMaterial({ map: ANIMS.idle.tex, transparent: true });
+const playerMesh = new THREE.Sprite(playerMat);
+playerMesh.scale.set(2.92, 3.4, 1);       // rasio cell 110:128
+playerMesh.position.set(0, 1.8, 0);
 scene.add(playerMesh);
+
+function updateAnim(dt) {
+  const name = playerMoving ? 'walk' : 'idle';
+  if (name !== curAnim) { curAnim = name; animFrame = 0; animTime = 0; playerMat.map = ANIMS[name].tex; }
+  const a = ANIMS[curAnim];
+  const fps = curAnim === 'walk' ? 11 : 5;
+  animTime += dt;
+  if (animTime >= 1 / fps) { animTime = 0; animFrame = (animFrame + 1) % a.frames; }
+  const fw = 1 / a.frames;
+  if (facing >= 0) { a.tex.repeat.x = fw;  a.tex.offset.x = animFrame * fw; }
+  else             { a.tex.repeat.x = -fw; a.tex.offset.x = (animFrame + 1) * fw; }
+}
 
 const ring = new THREE.Mesh(
   new THREE.RingGeometry(1.1,1.5,32),
@@ -341,11 +366,15 @@ function updateMovement(dt) {
   if (keys['s'] || keys['arrowdown'])  moveVec.sub(SCREEN_UP);
   if (keys['d'] || keys['arrowright']) moveVec.add(SCREEN_RIGHT);
   if (keys['a'] || keys['arrowleft'])  moveVec.sub(SCREEN_RIGHT);
-  if (moveVec.lengthSq() > 0) {
+  playerMoving = moveVec.lengthSq() > 0;
+  if (playerMoving) {
     moveVec.normalize();
     playerMesh.position.addScaledVector(moveVec, SPEED * dt);
     playerMesh.position.x = Math.max(-38, Math.min(38, playerMesh.position.x));
     playerMesh.position.z = Math.max(-38, Math.min(38, playerMesh.position.z));
+    // arah hadap: proyeksi gerak ke sumbu kanan-layar
+    const screenDir = moveVec.dot(SCREEN_RIGHT);
+    if (Math.abs(screenDir) > 0.05) facing = screenDir >= 0 ? 1 : -1;
   }
   ring.position.x = playerMesh.position.x;
   ring.position.z = playerMesh.position.z;
@@ -530,9 +559,10 @@ function loop(now) {
     checkCollisions();
     if (hitFlash > 0) hitFlash -= dt;
   }
+  updateAnim(dt);
 
   // Bob + pulse
-  playerMesh.position.y = 1.7 + Math.sin(now * 0.005) * 0.1;
+  playerMesh.position.y = 1.8 + Math.sin(now * 0.005) * 0.1;
   ring.material.opacity = 0.4 + Math.sin(now * 0.004) * 0.2;
 
   // Obstacle rotation
