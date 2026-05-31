@@ -3,218 +3,483 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Isometric 2.5D — Setup Demo</title>
+<title>Givers Gain — Stage 2: Network</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet" />
 <style>
-  :root { --bg:#080102; --crimson:#FF2D2A; --white:#F5F2EC; }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  html, body { background:var(--bg); height:100%; overflow:hidden; font-family:'DM Sans',system-ui,sans-serif; }
-  #app { position:fixed; inset:0; }
-  .hint {
-    position:fixed; left:1.5rem; bottom:1.5rem; z-index:10; color:var(--white);
-    font-size:.8rem; letter-spacing:.05em; line-height:1.6; opacity:.7;
-    background:rgba(255,45,42,.08); border:1px solid rgba(255,45,42,.25);
-    padding:.9rem 1.2rem; border-radius:6px; backdrop-filter:blur(8px);
+  :root {
+    --bg:#080102; --crimson:#FF2D2A; --crimson-deep:#C8120E;
+    --crimson-glow:rgba(255,45,42,0.35); --crimson-dim:rgba(255,45,42,0.12);
+    --white:#F5F2EC; --white-60:rgba(245,242,236,0.6); --white-40:rgba(245,242,236,0.4);
+    --gold:#C9A84C; --font-sans:'DM Sans',system-ui,sans-serif;
+    --border-dim:rgba(255,45,42,0.18); --border-mid:rgba(255,45,42,0.4);
   }
-  .hint b { color:var(--crimson); letter-spacing:.2em; text-transform:uppercase; font-size:.7rem; }
-  kbd { background:rgba(255,45,42,.15); border:1px solid rgba(255,45,42,.4); border-radius:3px; padding:1px 6px; font-size:.72rem; }
+  *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+  html,body { background:var(--bg); color:var(--white); font-family:var(--font-sans);
+    height:100%; overflow:hidden; -webkit-font-smoothing:antialiased; }
+  ::selection { background:var(--crimson); color:var(--white); }
+  canvas { position:fixed; inset:0; display:block; }
+
+  /* HUD */
+  #hud {
+    position:fixed; top:0; left:0; right:0; z-index:10; pointer-events:none;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:1rem 1.8rem;
+    background:linear-gradient(to bottom, rgba(8,1,2,0.85) 0%, transparent 100%);
+  }
+  .hud-block { display:flex; flex-direction:column; }
+  .hud-block.center { align-items:center; }
+  .hud-block.right  { align-items:flex-end; }
+  .lbl { font-size:.68rem; letter-spacing:.28em; text-transform:uppercase; color:var(--white-60); }
+  .val { font-size:1.5rem; font-weight:700; color:var(--white); }
+  .val.accent { color:var(--crimson); }
+  .timer-box { font-size:2rem; font-weight:700; color:var(--crimson);
+    min-width:2.5ch; text-align:center; }
+  #progressBar {
+    position:fixed; top:0; left:0; right:0; height:3px; z-index:11;
+    background:rgba(255,45,42,.15);
+  }
+  #progressFill { height:100%; background:var(--crimson); transition:width .3s linear; width:100%; }
+
+  /* Stage badge */
+  #stageBadge {
+    position:fixed; top:5.5rem; right:1.8rem; z-index:10; pointer-events:none;
+    font-size:.65rem; letter-spacing:.3em; text-transform:uppercase;
+    color:var(--crimson); border:1px solid var(--border-mid);
+    padding:.35rem .9rem; border-radius:20px;
+    background:rgba(255,45,42,.08); backdrop-filter:blur(6px);
+  }
+
+  /* Controls hint */
+  #hint {
+    position:fixed; left:1.5rem; bottom:1.5rem; z-index:10; pointer-events:none;
+    font-size:.75rem; letter-spacing:.05em; line-height:1.7; color:var(--white-60);
+    background:rgba(255,45,42,.08); border:1px solid var(--border-dim);
+    padding:.8rem 1.1rem; border-radius:6px; backdrop-filter:blur(8px);
+  }
+  #hint b { color:var(--crimson); text-transform:uppercase; font-size:.65rem; letter-spacing:.2em; }
+  kbd { background:rgba(255,45,42,.15); border:1px solid rgba(255,45,42,.4);
+    border-radius:3px; padding:1px 5px; font-size:.68rem; }
+
+  /* Score pop */
+  #scorePop {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    font-size:3rem; font-weight:700; color:var(--crimson); pointer-events:none;
+    z-index:20; opacity:0; text-shadow:0 0 30px var(--crimson-glow);
+  }
+
+  /* Transition overlay */
+  #transitionOverlay {
+    position:fixed; inset:0; background:var(--bg); z-index:50;
+    display:none; align-items:center; justify-content:center;
+    flex-direction:column; padding:2rem; text-align:center;
+  }
+  #transitionOverlay.on { display:flex; }
+  .tr-label { font-size:.75rem; letter-spacing:.35em; text-transform:uppercase; color:var(--white-60); }
+  .tr-total { font-size:clamp(3rem,8vw,5rem); font-weight:700; color:var(--crimson);
+    text-shadow:0 0 40px var(--crimson-glow); margin:.6rem 0; }
+  .tr-narrative { font-style:italic; font-size:clamp(1rem,2.5vw,1.5rem); color:var(--white-60);
+    max-width:600px; margin:1rem auto; line-height:1.5; }
+  .tr-progress { display:flex; gap:1rem; align-items:center; justify-content:center;
+    margin-top:1.5rem; font-size:.8rem; letter-spacing:.15em; text-transform:uppercase; color:var(--white-40); }
+  .tr-progress .done { color:var(--crimson); }
+  .tr-progress .active { color:var(--white); }
 </style>
 </head>
 <body>
+
 <canvas id="app"></canvas>
-<div class="hint">
-  <b>Isometric 2.5D</b><br>
-  <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> &nbsp;gerak (screen-relative)
+
+<div id="progressBar"><div id="progressFill"></div></div>
+
+<div id="hud">
+  <div class="hud-block">
+    <span class="lbl">Pemain</span>
+    <span class="val" id="hudName">—</span>
+  </div>
+  <div class="hud-block center">
+    <span class="lbl">Total Poin</span>
+    <span class="val accent" id="hudPoints">0</span>
+    <div class="timer-box" id="hudTimer">45</div>
+  </div>
+  <div class="hud-block right">
+    <span class="lbl">TYFCB</span>
+    <span class="val" id="hudCuan">Rp 0</span>
+  </div>
+</div>
+
+<div id="stageBadge">02 — Network</div>
+
+<div id="hint">
+  <b>Stage 2 — Isometric Network</b><br>
+  <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑↓←→</kbd> gerak<br>
+  Kumpulkan referral, hindari obstacle!
+</div>
+
+<div id="scorePop">+10</div>
+
+<!-- Transition to Stage 3 -->
+<div id="transitionOverlay">
+  <p class="tr-label">Stage 2 Selesai</p>
+  <div class="tr-total" id="trTotal">Rp 0</div>
+  <p class="tr-narrative" id="trNarrative">Jaringanmu semakin luas! Saatnya yang kamu tanam berbuah…</p>
+  <div class="tr-progress">
+    <span class="done">Stage 1 ✓</span> →
+    <span class="done">Stage 2 ✓</span> →
+    <span class="active">Stage 3: Gacha</span>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 <script>
-/* =====================================================================
- * 1. SCENE + RENDERER
- * =================================================================== */
+/* ===== LOAD STATE FROM STAGE 1 ===== */
+let run = {};
+try { run = JSON.parse(localStorage.getItem('gg_run') || '{}'); } catch(e) {}
+const playerName   = run.name     || 'Pemain';
+const carriedCuan  = run.totalCuan || 0;
+const CUAN_PER_PT  = 1000;
+const STAGE_DUR    = 45; // seconds
+
+document.getElementById('hudName').textContent  = playerName;
+const fmtRp = n => 'Rp ' + Math.max(0, n).toLocaleString('id-ID');
+document.getElementById('hudCuan').textContent  = fmtRp(carriedCuan);
+
+/* ===== SCENE SETUP ===== */
 const canvas = document.getElementById('app');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;                 // aktifkan bayangan
+renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setClearColor(0x080102, 1);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x080102, 0.012);    // haze gelap
+scene.fog = new THREE.FogExp2(0x080102, 0.014);
 
-/* =====================================================================
- * 2. KAMERA ISOMETRIK (OrthographicCamera)
- *    - Tanpa distorsi perspektif.
- *    - Top-down angled: Pitch 35.264°, Yaw 45°.
- * =================================================================== */
-const YAW   = Math.PI / 4;                          // 45°
-const PITCH = Math.atan(Math.sin(Math.PI / 4));     // ≈ 35.264°  (atan(1/√2))
-const DIST  = 60;                                   // jarak kamera dari pusat
-const FRUSTUM = 24;                                 // "zoom" — makin kecil makin dekat
+/* ===== ISOMETRIC CAMERA ===== */
+const YAW   = Math.PI / 4;
+const PITCH = Math.atan(Math.sin(Math.PI / 4));
+const DIST  = 55;
+const FRUSTUM = 22;
 
-function makeOrthoCamera() {
-  const aspect = innerWidth / innerHeight;
+function makeCamera() {
+  const a = innerWidth / innerHeight;
   const cam = new THREE.OrthographicCamera(
-    -FRUSTUM * aspect / 2,  FRUSTUM * aspect / 2,    // left, right
-     FRUSTUM / 2,          -FRUSTUM / 2,             // top, bottom
-    -200, 500                                        // near (boleh negatif utk ortho), far
+    -FRUSTUM * a / 2,  FRUSTUM * a / 2,
+     FRUSTUM / 2,     -FRUSTUM / 2,
+    -200, 500
   );
-  // Posisi dari pitch + yaw. Hasilnya setara (d, d, d) — sudut iso klasik.
   cam.position.set(
     DIST * Math.cos(PITCH) * Math.sin(YAW),
     DIST * Math.sin(PITCH),
     DIST * Math.cos(PITCH) * Math.cos(YAW)
   );
-  cam.lookAt(0, 0, 0);                               // selalu menghadap pusat map
+  cam.lookAt(0, 0, 0);
   return cam;
 }
-let camera = makeOrthoCamera();
+let camera = makeCamera();
 
-/* =====================================================================
- * 3. PENCAHAYAAN — vibe cyberpunk hitam/merah
- * =================================================================== */
-// Ambient redup ber-tint merah gelap → kesan space
-scene.add(new THREE.AmbientLight(0x2a0606, 0.6));
+/* ===== LIGHTS ===== */
+scene.add(new THREE.AmbientLight(0x2a0606, 0.7));
+const key = new THREE.DirectionalLight(0xFF2D2A, 2.4);
+key.position.set(18, 30, 14);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+const ks = key.shadow.camera;
+ks.left = -40; ks.right = 40; ks.top = 40; ks.bottom = -40;
+key.shadow.bias = -0.0004;
+scene.add(key);
+scene.add(new THREE.PointLight(0xFF4F4C, 1.2, 80, 2));
+scene.add(new THREE.PointLight(0x331018, 0.5, 60, 2));
 
-// Key light merah neon intens dari atas-serong → shadow & highlight kuat
-const keyLight = new THREE.DirectionalLight(0xFF2D2A, 2.6);
-keyLight.position.set(18, 30, 14);
-keyLight.castShadow = true;
-keyLight.shadow.mapSize.set(2048, 2048);
-const s = keyLight.shadow.camera;                   // bound shadow frustum (ortho light)
-s.left = -40; s.right = 40; s.top = 40; s.bottom = -40; s.near = 1; s.far = 120;
-keyLight.shadow.bias = -0.0004;
-scene.add(keyLight);
-
-// Fill point light merah dari sisi berlawanan → rim glow
-const fillLight = new THREE.PointLight(0xFF4F4C, 1.4, 90);
-fillLight.position.set(-22, 16, -10);
-scene.add(fillLight);
-
-// Sedikit cool counter-light biar tidak flat
-const cool = new THREE.PointLight(0x331018, 0.6, 70);
-cool.position.set(10, 8, -20);
-scene.add(cool);
-
-/* =====================================================================
- * 4. WORLD — ground grid + beberapa "bangunan"
- *    (Sumbu X & Z = bidang lantai, Y = tinggi bangunan)
- * =================================================================== */
+/* ===== GROUND ===== */
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(80, 80),
-  new THREE.MeshStandardMaterial({ color: 0x0a0102, metalness: 0.9, roughness: 0.35 })
+  new THREE.MeshStandardMaterial({ color:0x0a0102, metalness:0.9, roughness:0.35 })
 );
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-const grid = new THREE.GridHelper(80, 40, 0xFF2D2A, 0x3a0a0a);
-grid.material.opacity = 0.25; grid.material.transparent = true;
+const grid = new THREE.GridHelper(80, 40, 0xFF2D2A, 0x2a0808);
+grid.material.opacity = 0.2; grid.material.transparent = true;
 scene.add(grid);
 
-// Bangunan acak (boxes dengan tinggi berbeda di sumbu Y)
-function building(x, z, h, color) {
-  const m = new THREE.Mesh(
+/* ===== BUILDINGS ===== */
+function building(x, z, h) {
+  const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(3, h, 3),
-    new THREE.MeshStandardMaterial({ color, metalness: 0.5, roughness: 0.25, emissive: 0x1a0202, emissiveIntensity: 0.5 })
+    new THREE.MeshStandardMaterial({ color:0x0d0205, metalness:0.5, roughness:0.25, emissive:0x1a0202, emissiveIntensity:0.5 })
   );
-  m.position.set(x, h / 2, z);                      // Y = setengah tinggi → alas di lantai
-  m.castShadow = true; m.receiveShadow = true;
-  scene.add(m);
-  // edge glow strip
+  mesh.position.set(x, h/2, z);
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  scene.add(mesh);
   const strip = new THREE.Mesh(
-    new THREE.BoxGeometry(3.05, 0.08, 3.05),
-    new THREE.MeshBasicMaterial({ color: 0xFF2D2A })
+    new THREE.BoxGeometry(3.06, 0.08, 3.06),
+    new THREE.MeshBasicMaterial({ color:0xFF2D2A })
   );
   strip.position.set(x, h, z);
   scene.add(strip);
 }
-building(-9, -6, 6, 0x120306);
-building(-3,  8, 9, 0x0d0205);
-building( 7,  4, 4, 0x150307);
-building( 10, -8, 7, 0x0d0205);
-building(-12, 5, 5, 0x120306);
+[[-9,-6,6],[-3,8,9],[7,4,4],[10,-8,7],[-12,5,5],[-7,-12,5],[12,10,6],[-14,-2,8]].forEach(([x,z,h]) => building(x,z,h));
 
-/* =====================================================================
- * 5. PLAYER — bidang gerak di X/Z, Y = tinggi karakter
- * =================================================================== */
-const player = new THREE.Mesh(
-  new THREE.BoxGeometry(1.6, 2.2, 1.6),
-  new THREE.MeshStandardMaterial({ color: 0xFF2D2A, emissive: 0xFF2D2A, emissiveIntensity: 0.6, metalness: 0.3, roughness: 0.4 })
+/* ===== PLAYER ===== */
+const playerMesh = new THREE.Mesh(
+  new THREE.BoxGeometry(1.4,2,1.4),
+  new THREE.MeshStandardMaterial({ color:0xFF2D2A, emissive:0xFF2D2A, emissiveIntensity:0.7, metalness:0.3, roughness:0.4 })
 );
-player.position.set(0, 1.1, 0);
-player.castShadow = true;
-scene.add(player);
+playerMesh.position.set(0,1,0);
+playerMesh.castShadow = true;
+scene.add(playerMesh);
 
-// glow ring di bawah player
 const ring = new THREE.Mesh(
-  new THREE.RingGeometry(1.2, 1.6, 32),
-  new THREE.MeshBasicMaterial({ color: 0xFF2D2A, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
+  new THREE.RingGeometry(1.1,1.5,32),
+  new THREE.MeshBasicMaterial({ color:0xFF2D2A, transparent:true, opacity:0.5, side:THREE.DoubleSide })
 );
-ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02;
+ring.rotation.x = -Math.PI/2; ring.position.y = 0.03;
 scene.add(ring);
 
-/* =====================================================================
- * 6. MOVEMENT — dipetakan ke sudut kamera iso (screen-relative)
- *    Arah layar diputar 45° agar selaras dengan yaw kamera:
- *      Up    (layar atas)  → world (-X, -Z)   (menjauh dari kamera)
- *      Right (layar kanan) → world (+X, -Z)
- * =================================================================== */
+/* ===== COLLECTIBLES (referral coins) ===== */
+const COIN_SRCS = ['hospitality','manufaktur','pabrik','tambang','toko'];
+const coinImgs = {};
+COIN_SRCS.forEach(s => {
+  const img = new THREE.TextureLoader().load(
+    `assets/coin-${s}.png`,
+    undefined, undefined,
+    () => { /* fallback — textureless */ }
+  );
+  img.colorSpace = THREE.SRGBColorSpace;
+  coinImgs[s] = img;
+});
+
+const coins = [];
+const COIN_SIZE = 1.0;
+const COIN_VALUE = 10;
+
+function spawnCoin() {
+  const src = COIN_SRCS[Math.floor(Math.random() * COIN_SRCS.length)];
+  const tex = coinImgs[src];
+  const mat = tex
+    ? new THREE.SpriteMaterial({ map:tex, transparent:true })
+    : new THREE.SpriteMaterial({ color:0xFF2D2A });
+  const sprite = new THREE.Sprite(mat);
+  const x = (Math.random() - 0.5) * 50;
+  const z = (Math.random() - 0.5) * 50;
+  sprite.position.set(x, 1.8, z);
+  sprite.scale.set(COIN_SIZE * 1.6, COIN_SIZE * 1.6, 1);
+  scene.add(sprite);
+  // pulse ring
+  const rg = new THREE.Mesh(
+    new THREE.RingGeometry(0.8, 1.0, 24),
+    new THREE.MeshBasicMaterial({ color:0xFF2D2A, transparent:true, opacity:0.5, side:THREE.DoubleSide })
+  );
+  rg.rotation.x = -Math.PI/2; rg.position.set(x, 0.05, z);
+  scene.add(rg);
+  coins.push({ sprite, ring:rg, src, collected:false });
+}
+// Spawn 20 coins initially
+for (let i = 0; i < 20; i++) spawnCoin();
+
+/* ===== OBSTACLES ===== */
+const obstacles = [];
+function spawnObstacle() {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(1.4, 1.4, 1.4),
+    new THREE.MeshStandardMaterial({ color:0x3a0808, emissive:0x8a0000, emissiveIntensity:0.6, metalness:0.4, roughness:0.4 })
+  );
+  const x = (Math.random()-0.5)*50;
+  const z = (Math.random()-0.5)*50;
+  mesh.position.set(x, 0.7, z);
+  mesh.castShadow = true;
+  scene.add(mesh);
+  // skull label plane
+  const strip = new THREE.Mesh(
+    new THREE.BoxGeometry(1.5, 0.07, 1.5),
+    new THREE.MeshBasicMaterial({ color:0xFF2D2A })
+  );
+  strip.position.set(x, 1.4, z);
+  scene.add(strip);
+  obstacles.push({ mesh, strip, x, z });
+}
+for (let i = 0; i < 8; i++) spawnObstacle();
+
+/* ===== MOVEMENT ===== */
 const SCREEN_UP    = new THREE.Vector3(-1, 0, -1).normalize();
 const SCREEN_RIGHT = new THREE.Vector3( 1, 0, -1).normalize();
-const SPEED = 14;                                   // unit per detik
-
+const SPEED = 12;
 const keys = {};
-addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; e.preventDefault(); });
 addEventListener('keyup',   e => { keys[e.key.toLowerCase()] = false; });
 
-const move = new THREE.Vector3();
+const moveVec = new THREE.Vector3();
 function updateMovement(dt) {
-  move.set(0, 0, 0);
-  if (keys['w'] || keys['arrowup'])    move.add(SCREEN_UP);
-  if (keys['s'] || keys['arrowdown'])  move.sub(SCREEN_UP);
-  if (keys['d'] || keys['arrowright']) move.add(SCREEN_RIGHT);
-  if (keys['a'] || keys['arrowleft'])  move.sub(SCREEN_RIGHT);
-
-  if (move.lengthSq() > 0) {
-    move.normalize();
-    player.position.addScaledVector(move, SPEED * dt);
-    // clamp di dalam map
-    player.position.x = Math.max(-38, Math.min(38, player.position.x));
-    player.position.z = Math.max(-38, Math.min(38, player.position.z));
-    // hadapkan player ke arah gerak
-    player.rotation.y = Math.atan2(move.x, move.z);
+  moveVec.set(0, 0, 0);
+  if (keys['w'] || keys['arrowup'])    moveVec.add(SCREEN_UP);
+  if (keys['s'] || keys['arrowdown'])  moveVec.sub(SCREEN_UP);
+  if (keys['d'] || keys['arrowright']) moveVec.add(SCREEN_RIGHT);
+  if (keys['a'] || keys['arrowleft'])  moveVec.sub(SCREEN_RIGHT);
+  if (moveVec.lengthSq() > 0) {
+    moveVec.normalize();
+    playerMesh.position.addScaledVector(moveVec, SPEED * dt);
+    playerMesh.position.x = Math.max(-38, Math.min(38, playerMesh.position.x));
+    playerMesh.position.z = Math.max(-38, Math.min(38, playerMesh.position.z));
+    playerMesh.rotation.y = Math.atan2(moveVec.x, moveVec.z);
   }
-  ring.position.x = player.position.x;
-  ring.position.z = player.position.z;
+  ring.position.x = playerMesh.position.x;
+  ring.position.z = playerMesh.position.z;
+  // Camera follows player
+  camera.position.set(
+    playerMesh.position.x + DIST * Math.cos(PITCH) * Math.sin(YAW),
+    DIST * Math.sin(PITCH),
+    playerMesh.position.z + DIST * Math.cos(PITCH) * Math.cos(YAW)
+  );
+  camera.lookAt(playerMesh.position);
 }
 
-/* =====================================================================
- * 7. RENDER LOOP
- * =================================================================== */
+/* ===== SCORING ===== */
+let stagePoints = 0;
+let stageCuan   = carriedCuan;
+let hitFlash    = 0;
+
+function updateHUD() {
+  const total = carriedCuan + stagePoints * CUAN_PER_PT;
+  document.getElementById('hudPoints').textContent = stagePoints;
+  document.getElementById('hudCuan').textContent   = fmtRp(total);
+}
+
+const popEl = document.getElementById('scorePop');
+function showPop(text, color) {
+  popEl.textContent = text;
+  popEl.style.color = color || 'var(--crimson)';
+  gsap.fromTo(popEl, { opacity:1, y:0, scale:1 }, { opacity:0, y:-60, scale:1.4, duration:1, ease:'power2.out' });
+}
+
+/* ===== COLLISION ===== */
+const COLLECT_DIST2 = 2.2 * 2.2;
+const HIT_DIST2     = 1.8 * 1.8;
+
+function checkCollisions() {
+  const px = playerMesh.position.x, pz = playerMesh.position.z;
+
+  for (const c of coins) {
+    if (c.collected) continue;
+    const dx = c.sprite.position.x - px;
+    const dz = c.sprite.position.z - pz;
+    if (dx*dx + dz*dz < COLLECT_DIST2) {
+      c.collected = true;
+      scene.remove(c.sprite);
+      scene.remove(c.ring);
+      stagePoints += COIN_VALUE;
+      updateHUD();
+      showPop(`+${COIN_VALUE}`, '#FF2D2A');
+      // Respawn new coin after 2s
+      setTimeout(spawnCoin, 2000);
+    }
+  }
+
+  for (const o of obstacles) {
+    const dx = o.x - px, dz = o.z - pz;
+    if (dx*dx + dz*dz < HIT_DIST2) {
+      if (hitFlash <= 0) {
+        stagePoints = Math.max(0, stagePoints - 5);
+        updateHUD();
+        showPop('-5', '#ff6b6b');
+        hitFlash = 1.2;
+        // knock back
+        playerMesh.position.x -= moveVec.x * 2;
+        playerMesh.position.z -= moveVec.z * 2;
+      }
+    }
+  }
+}
+
+/* ===== TIMER ===== */
+let timeLeft = STAGE_DUR;
+let running  = true;
+
+const timerEl     = document.getElementById('hudTimer');
+const progressFil = document.getElementById('progressFill');
+
+let lastTick = performance.now();
+const timerInterval = setInterval(() => {
+  timeLeft--;
+  timerEl.textContent = Math.max(0, timeLeft);
+  progressFil.style.width = (timeLeft / STAGE_DUR * 100) + '%';
+  if (timeLeft <= 0) {
+    clearInterval(timerInterval);
+    running = false;
+    endStage();
+  }
+}, 1000);
+
+/* ===== END STAGE ===== */
+function endStage() {
+  const earned = stagePoints * CUAN_PER_PT;
+  const totalCuan = carriedCuan + earned;
+
+  // Persist
+  const updated = Object.assign({}, run, {
+    stage2: { points:stagePoints, cuan:earned, coins:stagePoints },
+    totalCuan,
+  });
+  localStorage.setItem('gg_run', JSON.stringify(updated));
+
+  // Overlay
+  const overlay = document.getElementById('transitionOverlay');
+  document.getElementById('trTotal').textContent = fmtRp(totalCuan);
+  overlay.classList.add('on');
+  gsap.fromTo(overlay, { opacity:0 }, { opacity:1, duration:.5 });
+  setTimeout(() => {
+    gsap.to(overlay, { opacity:0, duration:.5, onComplete:() => {
+      window.location.href = 'gacha.html';
+    }});
+  }, 2800);
+}
+
+/* ===== RENDER LOOP ===== */
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
 
-  updateMovement(dt);
+  if (running) {
+    updateMovement(dt);
+    checkCollisions();
+    if (hitFlash > 0) hitFlash -= dt;
+  }
 
-  // bob ringan + pulse glow
-  player.position.y = 1.1 + Math.sin(now * 0.005) * 0.08;
+  // Bob + pulse
+  playerMesh.position.y = 1 + Math.sin(now * 0.005) * 0.08;
   ring.material.opacity = 0.4 + Math.sin(now * 0.004) * 0.2;
+
+  // Obstacle rotation
+  obstacles.forEach(o => { o.mesh.rotation.y += dt * 0.8; });
+
+  // Coin float
+  coins.forEach((c, i) => {
+    if (!c.collected) {
+      c.sprite.position.y = 1.8 + Math.sin(now * 0.003 + i) * 0.18;
+      c.ring.material.opacity = 0.3 + Math.sin(now * 0.004 + i) * 0.2;
+    }
+  });
+
+  // Hit flash: tint player red
+  if (hitFlash > 0) {
+    playerMesh.material.emissiveIntensity = 0.7 + Math.sin(now * 0.03) * 0.5;
+  } else {
+    playerMesh.material.emissiveIntensity = 0.7;
+  }
 
   renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 
-/* =====================================================================
- * 8. RESIZE — recompute ortho frustum
- * =================================================================== */
+/* ===== RESIZE ===== */
 addEventListener('resize', () => {
-  const aspect = innerWidth / innerHeight;
-  camera.left   = -FRUSTUM * aspect / 2;
-  camera.right  =  FRUSTUM * aspect / 2;
+  const a = innerWidth / innerHeight;
+  camera.left   = -FRUSTUM * a / 2;
+  camera.right  =  FRUSTUM * a / 2;
   camera.top    =  FRUSTUM / 2;
   camera.bottom = -FRUSTUM / 2;
   camera.updateProjectionMatrix();

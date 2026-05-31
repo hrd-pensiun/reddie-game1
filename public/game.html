@@ -290,6 +290,7 @@ const INDUSTRIES = [
   { id: 'lainnya', emoji: '📦', name: 'Lainnya' },
 ];
 
+/* Stage 1 only — Stage 2 lives in iso-demo.html, Stage 3 in gacha.html */
 const STAGES = [
   {
     n: 1,
@@ -304,38 +305,6 @@ const STAGES = [
       { label: 'Males', value: -2 },
       { label: 'Padel Terus', value: -1 },
       { label: 'Tidak Kredibel', value: -1 },
-    ],
-  },
-  {
-    n: 2,
-    npc: { name: 'Bu Sari', role: 'Business Consultant', emoji: '👩‍💼', color: '#9d3a7a' },
-    dialog: 'Bagus! Sekarang perluas jaringanmu sendiri. Lakukan One-to-One dengan anggota sebanyak mungkin — kenali mereka, dan mereka akan kenali kamu!',
-    coins: [
-      { label: 'Hotel', value: 3, color: '#3a9d5c' },
-      { label: 'FnB', value: 2, color: '#e07c31' },
-      { label: 'Teknologi', value: 2, color: '#31b8e0' },
-      { label: 'Properti', value: 1, color: '#a0a0a0' },
-    ],
-    obstacles: [
-      { label: 'Ngobrol Ngalor-Ngidul', value: -2 },
-      { label: 'Lupa Follow Up', value: -3 },
-      { label: 'Skip Meeting', value: -4 },
-    ],
-  },
-  {
-    n: 3,
-    npc: { name: 'Pak Rian', role: 'Hotel Director', emoji: '🤵', color: '#3a5a9d' },
-    dialog: 'Saya dengar kamu dari jaringan BNI. Saya tertarik solusi digital untuk hotel saya. Buktikan kamu serius — kirimkan proposal yang tepat!',
-    coins: [
-      { label: 'Data & Riset', value: 4, color: '#31b8e0' },
-      { label: 'Ide Solusi', value: 3, color: '#e0b431' },
-      { label: 'Portofolio', value: 3, color: '#9d3aa0' },
-      { label: 'Referensi', value: 2, color: '#3a9d5c' },
-    ],
-    obstacles: [
-      { label: 'Proposal Asal', value: -4 },
-      { label: 'Telat Kirim', value: -3 },
-      { label: 'Tanpa Backup Data', value: -5 },
     ],
   },
 ];
@@ -921,35 +890,31 @@ function endStage() {
  * Engine cukup memanggil onStageComplete(earnedCuan, statsObj).
  */
 function onStageComplete(earned, stats) {
-  state.stageScores[state.stageIdx] = earned;
-  state.stageStats[state.stageIdx] = stats;
-  state.totalCuan = state.stageScores.reduce((a, b) => a + b, 0);
-  runTransition();
-}
+  state.stageScores[0] = earned;
+  state.stageStats[0]  = stats;
+  state.totalCuan      = earned;
 
-function runTransition() {
+  // Persist run state to localStorage, then hand off to Stage 2
+  localStorage.setItem('gg_run', JSON.stringify({
+    name:       state.name,
+    industry:   state.industry,
+    stage1:     stats,
+    totalCuan:  earned,
+  }));
+
   const overlay = document.getElementById('transitionOverlay');
-  // sub-total = total kumulatif sampai stage ini (biar terasa "kebawa")
-  document.getElementById('trSubtotal').textContent = fmtRp(state.totalCuan);
-  document.getElementById('trNarrative').textContent = TRANSITIONS[state.stageIdx + 1] || '';
-  const progressEl = document.getElementById('trProgress');
-  progressEl.innerHTML = [1,2,3].map(n => {
-    if (n <= state.stageIdx + 1) return `<span class="done">Stage ${n} ✓</span>`;
-    if (n === state.stageIdx + 2) return `→ <span class="active">Stage ${n}</span>`;
-    return `→ <span>Stage ${n}</span>`;
-  }).join(' ');
+  document.getElementById('trSubtotal').textContent = fmtRp(earned);
+  document.getElementById('trNarrative').textContent = 'Stage 1 selesai! Siap masuk jaringan isometrik…';
+  document.getElementById('trProgress').innerHTML =
+    '<span class="done">Stage 1 ✓</span> → <span class="active">Stage 2</span> → Stage 3';
 
   overlay.classList.add('on');
   gsap.fromTo(overlay, { opacity: 0 }, { opacity: 1, duration: .5 });
-
   setTimeout(() => {
     gsap.to(overlay, { opacity: 0, duration: .5, onComplete: () => {
-      overlay.classList.remove('on');
-      state.stageIdx++;
-      if (state.stageIdx >= 3) showResult();
-      else showBriefing();
+      window.location.href = 'iso-demo.html';
     }});
-  }, 3000);
+  }, 2800);
 }
 
 /* ========================================================================

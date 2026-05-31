@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Givers Gain — Stage 3: Gacha</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:#080102; --crimson:#FF2D2A; --crimson-deep:#C8120E;
+    --crimson-glow:rgba(255,45,42,0.35); --crimson-dim:rgba(255,45,42,0.12);
+    --white:#F5F2EC; --white-60:rgba(245,242,236,0.6); --white-40:rgba(245,242,236,0.4);
+    --gold:#C9A84C; --gold-soft:#b69138;
+    --border-dim:rgba(255,45,42,0.18); --border-mid:rgba(255,45,42,0.4);
+    --font-sans:'DM Sans',system-ui,sans-serif;
+  }
+  *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+  html,body { background:var(--bg); color:var(--white); font-family:var(--font-sans);
+    min-height:100%; -webkit-font-smoothing:antialiased; }
+  ::selection { background:var(--crimson); color:var(--white); }
+
+  /* SCREEN SYSTEM */
+  .screen { position:fixed; inset:0; display:none; align-items:center;
+    justify-content:center; padding:2rem; opacity:0; }
+  .screen.on { display:flex; }
+  .screen-inner { max-width:900px; width:100%; text-align:center; position:relative; z-index:2; }
+
+  /* TYPOGRAPHY */
+  .display-xl { font-size:clamp(3rem,8vw,6rem); font-weight:700; line-height:1; }
+  .display-lg { font-size:clamp(2rem,5vw,4rem); font-weight:700; line-height:1.05; }
+  .label { font-size:.72rem; letter-spacing:.35em; text-transform:uppercase; color:var(--white-60); }
+  .italic { font-style:italic; }
+  .accent { color:var(--crimson); }
+  .gold { color:var(--gold); }
+
+  /* BUTTONS */
+  .btn { display:inline-block; padding:1rem 2.8rem; background:var(--crimson); color:var(--white);
+    border:none; font-family:var(--font-sans); font-weight:700; letter-spacing:.25em;
+    font-size:.85rem; cursor:pointer; text-transform:uppercase; transition:background .2s,transform .2s;
+    border-radius:2px; box-shadow:0 0 24px var(--crimson-glow); }
+  .btn:hover { background:var(--crimson-deep); transform:scale(1.04); }
+  .btn-ghost { background:transparent; color:var(--crimson); border:1px solid var(--border-mid);
+    box-shadow:none; }
+  .btn-ghost:hover { background:var(--crimson); color:var(--white); }
+  .actions { display:flex; gap:1rem; justify-content:center; margin-top:2rem; flex-wrap:wrap; }
+
+  /* RESULT SCREEN */
+  .result-cuan { font-size:clamp(4rem,12vw,8rem); font-weight:700; color:var(--crimson);
+    line-height:1; margin:1rem 0; text-shadow:0 0 40px var(--crimson-glow); }
+  .breakdown { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin:2rem 0; }
+  .breakdown .b { padding:1rem; border:1px solid var(--border-dim); border-radius:4px; background:var(--crimson-dim); }
+  .breakdown .b .s { font-size:.65rem; letter-spacing:.2em; text-transform:uppercase; color:var(--white-60); }
+  .breakdown .b .v { font-size:1.3rem; font-weight:700; color:var(--crimson); margin-top:.3rem; }
+  .rank-pill { display:inline-block; padding:.5rem 1.2rem; background:var(--crimson-dim);
+    border:1px solid var(--border-mid); color:var(--crimson); font-size:.8rem;
+    letter-spacing:.2em; text-transform:uppercase; margin:.8rem 0; }
+  .wit-card { margin-top:1.5rem; padding:1.5rem; border:1px solid var(--border-mid);
+    background:var(--crimson-dim); border-radius:6px; display:flex;
+    align-items:center; gap:1.2rem; text-align:left; }
+  .wit-logo { width:60px; height:60px; background:var(--crimson); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:700;
+    font-size:1.4rem; border-radius:6px; flex-shrink:0; box-shadow:0 0 20px var(--crimson-glow); }
+  .wit-text { flex:1; font-size:.9rem; line-height:1.5; }
+  .wit-qr { width:70px; height:70px; background:var(--white); padding:4px; border-radius:4px; }
+
+  /* GACHA SCREEN */
+  .gacha-stage { width:280px; height:280px; margin:2rem auto; position:relative;
+    display:flex; align-items:center; justify-content:center; }
+  .gacha-ball { width:220px; height:220px; border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, var(--crimson), var(--crimson-deep) 60%, #5a0808);
+    box-shadow:0 20px 80px var(--crimson-glow), inset -20px -20px 50px rgba(0,0,0,.5);
+    display:flex; align-items:center; justify-content:center; font-size:4rem; cursor:pointer; }
+  .gacha-prize { display:none; }
+  .gacha-prize.on { display:block; }
+  .prize-tier { font-size:.8rem; letter-spacing:.3em; text-transform:uppercase; color:var(--crimson); }
+  .prize-icon { font-size:6rem; margin:1rem 0; }
+  .prize-name { font-size:2.5rem; font-weight:700; }
+  .prize-claim { margin-top:.8rem; font-size:.9rem; color:var(--white-60); font-style:italic; }
+
+  /* LEADERBOARD */
+  table.lb { width:100%; border-collapse:collapse; margin-top:2rem; }
+  table.lb th, table.lb td { padding:.8rem 1rem; text-align:left; border-bottom:1px solid var(--border-dim); }
+  table.lb th { font-size:.65rem; letter-spacing:.25em; text-transform:uppercase; color:var(--white-60); font-weight:500; }
+  table.lb td { font-size:1rem; }
+  table.lb tr.me { background:var(--crimson-dim); }
+  table.lb tr.me td { color:var(--crimson); }
+  table.lb td.cuan { color:var(--crimson); text-align:right; font-weight:700; }
+
+  /* CONFETTI */
+  #confetti { position:fixed; inset:0; pointer-events:none; z-index:100; }
+
+  /* STAGE BADGE */
+  #stageBadge {
+    position:fixed; top:1.2rem; right:1.5rem; z-index:20; pointer-events:none;
+    font-size:.65rem; letter-spacing:.3em; text-transform:uppercase;
+    color:var(--crimson); border:1px solid var(--border-mid);
+    padding:.35rem .9rem; border-radius:20px;
+    background:rgba(255,45,42,.08); backdrop-filter:blur(6px);
+  }
+
+  /* Star bg */
+  #starBg { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  .star { position:absolute; border-radius:50%; background:rgba(255,45,42,.6); }
+</style>
+</head>
+<body>
+
+<div id="stageBadge">03 — Gacha Prize</div>
+<canvas id="confetti"></canvas>
+<div id="starBg"></div>
+
+<!-- SCREEN: RESULT -->
+<section class="screen" id="sResult">
+  <div class="screen-inner">
+    <p class="label">Hasil Akhir · TYFCB</p>
+    <h2 class="display-lg italic" style="margin-top:.5rem"><span id="resName">—</span></h2>
+    <div class="result-cuan" id="resCuan">Rp 0</div>
+    <div class="breakdown" id="resBreakdown"></div>
+    <div class="rank-pill" id="resRank">Menghitung peringkat…</div>
+    <div class="wit-card">
+      <div class="wit-logo">WIT</div>
+      <div class="wit-text"><strong>WIT Indonesia</strong><br>Solusi digital untuk bisnis BNI — Empowering Your Business with Smart Digital Solutions.</div>
+      <img class="wit-qr" id="resQR" alt="QR" />
+    </div>
+    <div id="gachaGate" style="margin-top:1.5rem"></div>
+    <div class="actions">
+      <button class="btn btn-ghost" id="resReplay">Main Lagi</button>
+      <button class="btn btn-ghost" id="resBoard">Leaderboard</button>
+    </div>
+  </div>
+</section>
+
+<!-- SCREEN: GACHA -->
+<section class="screen" id="sGacha">
+  <div class="screen-inner">
+    <p class="label">Hadiah Spesial</p>
+    <h2 class="display-lg italic accent" style="margin:.5rem 0">Putar Gacha</h2>
+    <div class="gacha-stage">
+      <div class="gacha-ball" id="gachaBall">✦</div>
+    </div>
+    <div class="gacha-prize" id="gachaPrize">
+      <div class="prize-tier" id="prizeTier">—</div>
+      <div class="prize-icon" id="prizeIcon">🎁</div>
+      <div class="prize-name" id="prizeName">—</div>
+      <p class="prize-claim">Tunjukkan layar ini ke petugas booth untuk klaim!</p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="gachaSpin">✦ Putar!</button>
+      <button class="btn btn-ghost" id="gachaToBoard" style="display:none">Lihat Leaderboard</button>
+    </div>
+  </div>
+</section>
+
+<!-- SCREEN: LEADERBOARD -->
+<section class="screen" id="sLeader">
+  <div class="screen-inner" style="max-width:1000px">
+    <p class="label">Peringkat Hari Ini</p>
+    <h2 class="display-lg italic" style="margin:.5rem 0">Top <span class="accent">Givers</span></h2>
+    <table class="lb">
+      <thead><tr><th>#</th><th>Nama</th><th>Industri</th><th>Stage</th><th style="text-align:right">TYFCB</th></tr></thead>
+      <tbody id="lbBody"></tbody>
+    </table>
+    <div class="actions">
+      <button class="btn" id="lbReplay">Main Lagi</button>
+      <button class="btn btn-ghost" id="lbReset">Reset (Operator)</button>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script>
+/* ===== LOAD STATE ===== */
+let run = {};
+try { run = JSON.parse(localStorage.getItem('gg_run') || '{}'); } catch(e) {}
+
+const LB_KEY        = 'givers_gain_scores';
+const GACHA_MIN     = 30000;
+const LB_MAX        = 50;
+const fmtRp = n => 'Rp ' + Math.max(0, n).toLocaleString('id-ID');
+
+const PRIZES = [
+  { icon:'🏆', name:'Tumbler WIT',  tier:'Grand Prize', chance:5 },
+  { icon:'🎽', name:'Kaos WIT',     tier:'Rare',        chance:15 },
+  { icon:'🧢', name:'Topi WIT',     tier:'Uncommon',    chance:20 },
+  { icon:'📖', name:'Notebook WIT', tier:'Common',      chance:30 },
+  { icon:'🖊️', name:'Pulpen WIT',   tier:'Common',      chance:30 },
+];
+
+/* ===== STAR BACKGROUND ===== */
+const starBg = document.getElementById('starBg');
+for (let i = 0; i < 60; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const size = Math.random() * 3 + 1;
+  s.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;opacity:${Math.random()*0.5+0.1}`;
+  starBg.appendChild(s);
+}
+
+/* ===== SCREEN MANAGER ===== */
+const screens = ['sResult', 'sGacha', 'sLeader'];
+function show(id) {
+  screens.forEach(s => {
+    const el = document.getElementById(s);
+    el.classList.remove('on');
+    el.style.opacity = '0';
+  });
+  const target = document.getElementById(id);
+  target.classList.add('on');
+  gsap.to(target, { opacity:1, duration:.5 });
+}
+
+/* ===== SAVE SCORE ===== */
+let lastSavedTs = null;
+function saveScore() {
+  const scores = getScores();
+  const entry = {
+    ts:       Date.now(),
+    name:     run.name || 'Pemain',
+    industry: run.industry ? run.industry.name : 'Lainnya',
+    cuan:     run.totalCuan || 0,
+    stage:    3,
+  };
+  lastSavedTs = entry.ts;
+  scores.unshift(entry);
+  scores.sort((a,b) => b.cuan - a.cuan);
+  localStorage.setItem(LB_KEY, JSON.stringify(scores.slice(0, LB_MAX)));
+}
+function getScores() {
+  try { return JSON.parse(localStorage.getItem(LB_KEY) || '[]'); } catch(e) { return []; }
+}
+
+/* ===== RESULT SCREEN ===== */
+function showResult() {
+  saveScore();
+  const totalCuan = run.totalCuan || 0;
+  const s1        = run.stage1 || {};
+  const s2        = run.stage2 || {};
+
+  document.getElementById('resName').textContent = `${run.name || 'Pemain'} · ${(run.industry && run.industry.name) || ''}`;
+
+  // Count-up animation
+  const cuanEl = document.getElementById('resCuan');
+  const obj = { v:0 };
+  gsap.to(obj, { v:totalCuan, duration:2, ease:'power2.out',
+    onUpdate:() => cuanEl.textContent = fmtRp(Math.floor(obj.v)) });
+
+  // Breakdown
+  document.getElementById('resBreakdown').innerHTML = `
+    <div class="b"><div class="s">Stage 1 — Network</div><div class="v">${fmtRp(s1.cuan || 0)}</div></div>
+    <div class="b"><div class="s">Stage 2 — Isometric</div><div class="v">${fmtRp(s2.cuan || 0)}</div></div>
+    <div class="b"><div class="s">Total</div><div class="v">${fmtRp(totalCuan)}</div></div>
+  `;
+
+  // Rank
+  const scores   = getScores();
+  const myRank   = scores.findIndex(s => s.ts === lastSavedTs) + 1;
+  document.getElementById('resRank').textContent = myRank > 0 ? `🏅 Kamu #${myRank} hari ini!` : 'Ranking tersimpan';
+
+  // QR
+  document.getElementById('resQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent('https://wit.id')}&bgcolor=080102&color=FF2D2A`;
+
+  // Gacha gate
+  const gate = document.getElementById('gachaGate');
+  if (totalCuan >= GACHA_MIN) {
+    gate.innerHTML = '<button class="btn" id="gachaOpen">✦ Putar Gacha Hadiah</button>';
+    document.getElementById('gachaOpen').addEventListener('click', openGacha);
+  } else {
+    gate.innerHTML = `<p style="color:var(--white-40);font-style:italic;margin-top:.5rem">Capai ${fmtRp(GACHA_MIN)} untuk buka gacha</p>`;
+  }
+
+  show('sResult');
+}
+
+/* ===== GACHA ===== */
+function openGacha() {
+  show('sGacha');
+  document.getElementById('gachaBall').style.display = 'flex';
+  document.getElementById('gachePrize') && document.getElementById('gachaPrize').classList.remove('on');
+  document.getElementById('gachaSpin').style.display = 'inline-block';
+  document.getElementById('gachaToBoard').style.display = 'none';
+}
+
+function pickPrize() {
+  const total = PRIZES.reduce((s,p) => s + p.chance, 0);
+  let r = Math.random() * total;
+  for (const p of PRIZES) { r -= p.chance; if (r <= 0) return p; }
+  return PRIZES[PRIZES.length - 1];
+}
+
+document.getElementById('gachaSpin').addEventListener('click', () => {
+  const ball = document.getElementById('gachaBall');
+  document.getElementById('gachaSpin').style.display = 'none';
+  gsap.to(ball, { rotation:1440, scale:1.2, duration:2.5, ease:'power2.inOut', onComplete:() => {
+    gsap.to(ball, { scale:0, duration:.3, onComplete:() => {
+      ball.style.display = 'none';
+      const prize = pickPrize();
+      document.getElementById('prizeTier').textContent = prize.tier;
+      document.getElementById('prizeIcon').textContent = prize.icon;
+      document.getElementById('prizeName').textContent = prize.name;
+      document.getElementById('gachaPrize').classList.add('on');
+      gsap.fromTo('#gachaPrize', { opacity:0, y:20 }, { opacity:1, y:0, duration:.6 });
+      confettiBurst();
+      document.getElementById('gachaToBoard').style.display = 'inline-block';
+    }});
+  }});
+});
+
+document.getElementById('gachaToBoard').addEventListener('click', showLeaderboard);
+
+/* ===== LEADERBOARD ===== */
+function showLeaderboard() {
+  const scores = getScores();
+  const rows = scores.slice(0, 15).map((s, i) => {
+    const isMe = s.ts === lastSavedTs;
+    const medal = i === 0 ? '🏆' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+    return `<tr${isMe ? ' class="me"' : ''}><td>${medal}${i+1}</td><td>${s.name}</td><td>${s.industry}</td><td>${s.stage}/3</td><td class="cuan">${fmtRp(s.cuan)}</td></tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--white-40)">Belum ada skor.</td></tr>';
+  document.getElementById('lbBody').innerHTML = rows;
+  show('sLeader');
+}
+
+/* ===== CONFETTI ===== */
+function confettiBurst() {
+  const c = document.getElementById('confetti');
+  c.width = innerWidth; c.height = innerHeight;
+  const ctx = c.getContext('2d');
+  const cols = ['#FF2D2A','#C8120E','#F5F2EC','#C9A84C','#FF6B6B'];
+  const pieces = Array.from({ length: 120 }, () => ({
+    x: Math.random() * innerWidth, y: -20,
+    vx: (Math.random()-0.5)*6, vy: 3+Math.random()*4,
+    color: cols[Math.floor(Math.random()*cols.length)],
+    size: 6+Math.random()*10, angle: Math.random()*Math.PI*2,
+    spin: (Math.random()-.5)*0.3,
+  }));
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0,0,c.width,c.height);
+    pieces.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.angle += p.spin;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.angle);
+      ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, 1-frame/120);
+      ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size/2);
+      ctx.restore();
+    });
+    frame++;
+    if (frame < 150) requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,c.width,c.height);
+  }
+  draw();
+}
+
+/* ===== BUTTONS ===== */
+document.getElementById('resReplay').addEventListener('click', () => {
+  localStorage.removeItem('gg_run');
+  window.location.href = 'game.html';
+});
+document.getElementById('resBoard').addEventListener('click', showLeaderboard);
+document.getElementById('lbReplay').addEventListener('click', () => {
+  localStorage.removeItem('gg_run');
+  window.location.href = 'game.html';
+});
+document.getElementById('lbReset').addEventListener('click', () => {
+  if (confirm('Reset leaderboard? (Operator only)')) {
+    localStorage.removeItem(LB_KEY);
+    showLeaderboard();
+  }
+});
+
+/* ===== INIT ===== */
+showResult();
+</script>
+</body>
+</html>
