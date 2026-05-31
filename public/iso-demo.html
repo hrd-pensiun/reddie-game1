@@ -205,31 +205,34 @@ const grid = new THREE.GridHelper(80, 40, 0xFF2D2A, 0x2a0808);
 grid.material.opacity = 0.2; grid.material.transparent = true;
 scene.add(grid);
 
-/* ===== BUILDINGS ===== */
-function building(x, z, h) {
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(3, h, 3),
-    new THREE.MeshStandardMaterial({ color:0x0d0205, metalness:0.5, roughness:0.25, emissive:0x1a0202, emissiveIntensity:0.5 })
-  );
-  mesh.position.set(x, h/2, z);
-  mesh.castShadow = true; mesh.receiveShadow = true;
-  scene.add(mesh);
-  const strip = new THREE.Mesh(
-    new THREE.BoxGeometry(3.06, 0.08, 3.06),
-    new THREE.MeshBasicMaterial({ color:0xFF2D2A })
-  );
-  strip.position.set(x, h, z);
-  scene.add(strip);
-}
-[[-9,-6,6],[-3,8,9],[7,4,4],[10,-8,7],[-12,5,5],[-7,-12,5],[12,10,6],[-14,-2,8]].forEach(([x,z,h]) => building(x,z,h));
+/* ===== BUILDINGS (iso asset sprites, random) ===== */
+const ISO_BUILDINGS = ['iso_kota','iso_park','iso_wit'];
+const ISO_RATIO = 2160 / 3840; // tinggi/lebar asli
+const isoTex = {};
+ISO_BUILDINGS.forEach(s => {
+  const t = new THREE.TextureLoader().load(`assets/${s}-opt.png`);
+  t.colorSpace = THREE.SRGBColorSpace;
+  isoTex[s] = t;
+});
 
-/* ===== PLAYER ===== */
-const playerMesh = new THREE.Mesh(
-  new THREE.BoxGeometry(1.4,2,1.4),
-  new THREE.MeshStandardMaterial({ color:0xFF2D2A, emissive:0xFF2D2A, emissiveIntensity:0.7, metalness:0.3, roughness:0.4 })
-);
-playerMesh.position.set(0,1,0);
-playerMesh.castShadow = true;
+function building(x, z) {
+  const src = ISO_BUILDINGS[Math.floor(Math.random() * ISO_BUILDINGS.length)];
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: isoTex[src], transparent: true }));
+  const w = 9 + Math.random() * 5;        // 9–14 lebar
+  const h = w * ISO_RATIO;
+  sprite.scale.set(w, h, 1);
+  sprite.position.set(x, h / 2 + 0.2, z); // duduk di atas tanah
+  scene.add(sprite);
+}
+[[-12,-9],[-2,11],[10,5],[14,-11],[-16,7],[-9,-16],[16,14],[-19,-3],[6,-14],[18,2]]
+  .forEach(([x,z]) => building(x,z));
+
+/* ===== PLAYER (Reddie sprite) ===== */
+const reddieTex = new THREE.TextureLoader().load('assets/reddie.png');
+reddieTex.colorSpace = THREE.SRGBColorSpace;
+const playerMesh = new THREE.Sprite(new THREE.SpriteMaterial({ map: reddieTex, transparent: true }));
+playerMesh.scale.set(2.6, 3.4, 1);        // rasio ~3:4
+playerMesh.position.set(0, 1.7, 0);
 scene.add(playerMesh);
 
 const ring = new THREE.Mesh(
@@ -323,7 +326,6 @@ function updateMovement(dt) {
     playerMesh.position.addScaledVector(moveVec, SPEED * dt);
     playerMesh.position.x = Math.max(-38, Math.min(38, playerMesh.position.x));
     playerMesh.position.z = Math.max(-38, Math.min(38, playerMesh.position.z));
-    playerMesh.rotation.y = Math.atan2(moveVec.x, moveVec.z);
   }
   ring.position.x = playerMesh.position.x;
   ring.position.z = playerMesh.position.z;
@@ -449,7 +451,7 @@ function loop(now) {
   }
 
   // Bob + pulse
-  playerMesh.position.y = 1 + Math.sin(now * 0.005) * 0.08;
+  playerMesh.position.y = 1.7 + Math.sin(now * 0.005) * 0.1;
   ring.material.opacity = 0.4 + Math.sin(now * 0.004) * 0.2;
 
   // Obstacle rotation
@@ -463,11 +465,11 @@ function loop(now) {
     }
   });
 
-  // Hit flash: tint player red
+  // Hit flash: blink Reddie (sprite — pakai opacity)
   if (hitFlash > 0) {
-    playerMesh.material.emissiveIntensity = 0.7 + Math.sin(now * 0.03) * 0.5;
+    playerMesh.material.opacity = 0.4 + Math.abs(Math.sin(now * 0.025)) * 0.6;
   } else {
-    playerMesh.material.emissiveIntensity = 0.7;
+    playerMesh.material.opacity = 1;
   }
 
   renderer.render(scene, camera);
