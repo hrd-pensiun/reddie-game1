@@ -88,6 +88,53 @@
     margin-top:1.5rem; font-size:.8rem; letter-spacing:.15em; text-transform:uppercase; color:var(--white-40); }
   .tr-progress .done { color:var(--crimson); }
   .tr-progress .active { color:var(--white); }
+
+  /* Kartu kunjungan (tooltip masuk bangunan) */
+  #visitCard {
+    position:fixed; top:16%; left:50%; transform:translateX(-50%);
+    z-index:30; pointer-events:none; opacity:0; min-width:300px; max-width:90vw;
+    background:rgba(13,2,3,0.94); border:1px solid var(--border-mid);
+    border-radius:12px; padding:1.1rem 1.5rem; text-align:center;
+    box-shadow:0 16px 60px rgba(0,0,0,0.6), 0 0 30px var(--crimson-glow);
+    backdrop-filter:blur(10px);
+  }
+  #visitCard.on { display:block; }
+  #visitCard.wit { border-color:var(--crimson); box-shadow:0 16px 60px rgba(0,0,0,0.6), 0 0 50px rgba(255,45,42,0.6); }
+  #visitCard .vc-tag { font-size:.65rem; letter-spacing:.25em; text-transform:uppercase; color:var(--crimson); }
+  #visitCard .vc-title { font-size:1.5rem; font-weight:700; margin:.3rem 0 .15rem; }
+  #visitCard .vc-sub { font-size:.85rem; color:var(--white-60); }
+  #visitCard .vc-ref { margin-top:.7rem; font-size:.9rem; color:var(--white); }
+  #visitCard .vc-ref b { color:var(--white); }
+  #visitCard .vc-stars { color:var(--gold); font-weight:700; }
+  #visitCard .vc-deal { margin-top:.7rem; font-size:1.3rem; font-weight:700; color:var(--crimson); letter-spacing:.05em; }
+  #visitCard .vc-deal b { font-size:1.6rem; }
+
+  /* Briefing overlay */
+  #briefOverlay {
+    position:fixed; inset:0; z-index:60; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:1.4rem; padding:2rem;
+    background:radial-gradient(circle at 50% 40%, rgba(40,6,6,0.7), rgba(8,1,2,0.96));
+    transition:opacity .5s ease;
+  }
+  #briefOverlay.hidden { opacity:0; pointer-events:none; }
+  .brief-badge { font-size:.7rem; letter-spacing:.4em; text-transform:uppercase;
+    color:var(--crimson); border:1px solid var(--border-mid); padding:.4rem 1rem; border-radius:20px; }
+  .brief-card { display:flex; gap:1.5rem; align-items:center; max-width:680px;
+    background:rgba(13,2,3,0.8); border:1px solid var(--border-dim); border-radius:14px; padding:1.6rem 1.8rem; }
+  .brief-avatar { width:110px; height:110px; border-radius:50%; flex-shrink:0; box-shadow:0 0 40px var(--crimson-glow); }
+  .brief-name { font-size:1.5rem; font-weight:700; color:var(--crimson); }
+  .brief-name span { display:block; font-size:.7rem; letter-spacing:.2em; text-transform:uppercase; color:var(--white-60); font-weight:400; margin-top:.2rem; }
+  .brief-dialog { margin-top:.8rem; font-size:.95rem; line-height:1.6; color:var(--white); text-align:left; }
+  .brief-dialog b { color:var(--white); }
+  .brief-dialog .accent { color:var(--crimson); }
+  .brief-note { font-size:.85rem; color:var(--gold); font-style:italic; }
+  .brief-start { background:var(--crimson); color:var(--white); border:none; cursor:pointer;
+    font-family:var(--font-sans); font-weight:700; letter-spacing:.25em; font-size:.9rem;
+    text-transform:uppercase; padding:1rem 3rem; border-radius:3px; box-shadow:0 0 30px var(--crimson-glow);
+    transition:transform .2s, background .2s; }
+  .brief-start:hover { background:var(--crimson-deep); transform:scale(1.05); }
+  .brief-hint { font-size:.7rem; letter-spacing:.2em; text-transform:uppercase; color:var(--white-40); }
+  @media (max-width:640px){ .brief-card{flex-direction:column;text-align:center} .brief-dialog{text-align:center} }
 </style>
 </head>
 <body>
@@ -112,18 +159,40 @@
   </div>
 </div>
 
-<div id="stageBadge">02 — Network</div>
+<div id="stageBadge">02 — Cari Kantor WIT</div>
 
 <div id="hint">
-  <b>Stage 2 — Isometric Network</b><br>
+  <b>Stage 2 — Cari Kantor WIT</b><br>
   <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑↓←→</kbd> gerak<br>
-  Masuki bangunan (lingkaran merah) untuk closing deal besar!<br>
-  Kumpulkan referral, hindari obstacle 💀
-
+  Masuki bangunan = referral · Temukan <b>WIT</b> = DONE DEAL!
 </div>
 
 <div id="scorePop">+10</div>
 <div id="enterFlash"></div>
+
+<!-- Kartu kunjungan (tooltip masuk bangunan) -->
+<div id="visitCard"></div>
+
+<!-- Briefing Stage 2 -->
+<div id="briefOverlay">
+  <div class="brief-badge">Stage 2 / 3 — Network</div>
+  <div class="brief-card">
+    <div class="brief-avatar" style="background:#1a0202 url('assets/ceo-avatar.png') center/cover"></div>
+    <div class="brief-body">
+      <div class="brief-name">Pak Irfan <span>CEO WIT Indonesia</span></div>
+      <p class="brief-dialog">
+        "Tolong bantu rekan saya — mereka sedang butuh <b>solusi IT</b> dan konsultasi <b>Digital Transformation</b>."
+        <br><br>
+        Tugas anda: jelajahi kota dan <b>masuk ke bangunan-bangunan</b> untuk mendapatkan <b>poin referral</b>.
+        Cari <b class="accent">Kantor WIT</b> yang tersembunyi — hanya di sana kamu bisa closing <b class="accent">DONE DEAL</b> (+100)!
+        <br><br>
+        <span class="brief-note">⏱️ Waktu singkat, tanpa rintangan. Gerak cepat!</span>
+      </p>
+    </div>
+  </div>
+  <button class="brief-start" id="briefStart">MULAI &nbsp;▸</button>
+  <div class="brief-hint">Tekan ENTER / SPACE untuk mulai</div>
+</div>
 
 <!-- Transition to Stage 3 -->
 <div id="transitionOverlay">
@@ -146,7 +215,21 @@ try { run = JSON.parse(localStorage.getItem('gg_run') || '{}'); } catch(e) {}
 const playerName   = run.name     || 'Pemain';
 const carriedCuan  = run.totalCuan || 0;
 const CUAN_PER_PT  = 1000;
-const STAGE_DUR    = 45; // seconds
+const STAGE_DUR    = 30; // detik — lebih cepat dari Stage 1
+
+/* Data perusahaan untuk kartu kunjungan */
+const CO_NAMES   = ['Nusantara Maju','Karya Prima','Sukses Abadi','Cipta Solusi','Mitra Sejahtera','Indo Global','Artha Mandiri','Bina Usaha','Graha Persada','Delta Perkasa','Surya Kencana','Mega Buana'];
+const CO_PREFIX  = ['PT','CV','UD','PT'];
+const CO_KLAS    = ['Hospitality & Hotel','Manufaktur & Industri','Pabrik & Energi','Konstruksi & Tambang','Retail & Commerce','FnB & Kuliner','Logistik & Distribusi','Properti & Real Estate'];
+const REFERRALS  = ['Kontak Direktur','Jadwal Meeting','Rekomendasi Vendor','Data Prospek','Undangan Event','Intro ke Mitra'];
+function randCompany() {
+  return {
+    pt:   `${CO_PREFIX[Math.floor(Math.random()*CO_PREFIX.length)]} ${CO_NAMES[Math.floor(Math.random()*CO_NAMES.length)]}`,
+    klas: CO_KLAS[Math.floor(Math.random()*CO_KLAS.length)],
+    ref:  REFERRALS[Math.floor(Math.random()*REFERRALS.length)],
+    val:  Math.floor(Math.random()*5)+1,   // referral 1–5
+  };
+}
 
 document.getElementById('hudName').textContent  = playerName;
 const fmtRp = n => 'Rp ' + Math.max(0, n).toLocaleString('id-ID');
@@ -214,38 +297,45 @@ const grid = new THREE.GridHelper(80, 40, 0xFF2D2A, 0x2a0808);
 grid.material.opacity = 0.2; grid.material.transparent = true;
 scene.add(grid);
 
-/* ===== BUILDINGS (iso asset sprites, random) ===== */
-const ISO_BUILDINGS = ['iso_kota','iso_park','iso_wit'];
-const ISO_RATIO = 2160 / 3840; // tinggi/lebar asli
+/* ===== BUILDINGS — kantor perusahaan; satu di antaranya kantor WIT (tersembunyi) ===== */
+// Pakai hanya 2 tekstur generik agar WIT tidak ketahuan dari visualnya
+const ISO_BUILDINGS = ['iso_kota','iso_park'];
+const ISO_RATIO = 2160 / 3840;
 const isoTex = {};
-ISO_BUILDINGS.forEach(s => {
+['iso_kota','iso_park'].forEach(s => {
   const t = new THREE.TextureLoader().load(`assets/${s}-opt.png`);
   t.colorSpace = THREE.SRGBColorSpace;
   isoTex[s] = t;
 });
 
-const ISO_NAMES = { iso_kota:'Kota Bisnis', iso_park:'Business Park', iso_wit:'WIT HQ' };
 const buildings = [];
 
 function building(x, z) {
   const src = ISO_BUILDINGS[Math.floor(Math.random() * ISO_BUILDINGS.length)];
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: isoTex[src], transparent: true }));
-  const w = 9 + Math.random() * 5;        // 9–14 lebar
+  const w = 9 + Math.random() * 5;
   const h = w * ISO_RATIO;
   sprite.scale.set(w, h, 1);
-  sprite.position.set(x, h / 2 + 0.2, z); // duduk di atas tanah
+  sprite.position.set(x, h / 2 + 0.2, z);
   scene.add(sprite);
-  // glow ring penanda "pintu masuk"
+  // glow ring penanda pintu masuk
   const door = new THREE.Mesh(
     new THREE.RingGeometry(2.2, 2.8, 32),
     new THREE.MeshBasicMaterial({ color:0xFF2D2A, transparent:true, opacity:0.4, side:THREE.DoubleSide })
   );
   door.rotation.x = -Math.PI/2; door.position.set(x, 0.04, z);
   scene.add(door);
-  buildings.push({ sprite, door, x, z, baseW:w, baseH:h, name:ISO_NAMES[src], entering:false });
+  buildings.push({ sprite, door, x, z, baseW:w, baseH:h, isWit:false, co:randCompany(), entering:false, visited:false });
 }
 [[-12,-9],[-2,11],[10,5],[14,-11],[-16,7],[-9,-16],[16,14],[-19,-3],[6,-14],[18,2]]
   .forEach(([x,z]) => building(x,z));
+
+// Tandai satu bangunan acak sebagai kantor WIT (tersembunyi — visual sama)
+function pickWit() {
+  buildings.forEach(b => b.isWit = false);
+  buildings[Math.floor(Math.random() * buildings.length)].isWit = true;
+}
+pickWit();
 
 /* ===== PLAYER (Reddie animated sprite dari spritesheet) ===== */
 function loadAnim(file, frames) {
@@ -302,7 +392,7 @@ COIN_SRCS.forEach(s => {
 
 const coins = [];
 const COIN_SIZE = 1.0;
-const COIN_VALUE = 10;
+const COIN_VALUE = 3;   // referral kecil (bonus); bangunan = utama
 
 function spawnCoin() {
   const src = COIN_SRCS[Math.floor(Math.random() * COIN_SRCS.length)];
@@ -325,31 +415,11 @@ function spawnCoin() {
   scene.add(rg);
   coins.push({ sprite, ring:rg, src, collected:false });
 }
-// Spawn 20 coins initially
-for (let i = 0; i < 20; i++) spawnCoin();
+// Spawn 10 referral pickups
+for (let i = 0; i < 10; i++) spawnCoin();
 
-/* ===== OBSTACLES ===== */
+/* ===== OBSTACLES — DIHAPUS di Stage 2 (tidak ada rintangan) ===== */
 const obstacles = [];
-function spawnObstacle() {
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(1.4, 1.4, 1.4),
-    new THREE.MeshStandardMaterial({ color:0x3a0808, emissive:0x8a0000, emissiveIntensity:0.6, metalness:0.4, roughness:0.4 })
-  );
-  const x = (Math.random()-0.5)*50;
-  const z = (Math.random()-0.5)*50;
-  mesh.position.set(x, 0.7, z);
-  mesh.castShadow = true;
-  scene.add(mesh);
-  // skull label plane
-  const strip = new THREE.Mesh(
-    new THREE.BoxGeometry(1.5, 0.07, 1.5),
-    new THREE.MeshBasicMaterial({ color:0xFF2D2A })
-  );
-  strip.position.set(x, 1.4, z);
-  scene.add(strip);
-  obstacles.push({ mesh, strip, x, z });
-}
-for (let i = 0; i < 8; i++) spawnObstacle();
 
 /* ===== MOVEMENT ===== */
 const SCREEN_UP    = new THREE.Vector3(-1, 0, -1).normalize();
@@ -422,45 +492,64 @@ function flashScreen() {
     yoyo: true, repeat: 1 });
 }
 
-/* Efek "masuk ke bangunan" — sinematik: zoom-in lambat, hold di dalam, pull-back halus */
+/* Kartu kunjungan — tooltip muncul saat masuk bangunan */
+const visitCard = document.getElementById('visitCard');
+let visitTimeout = null;
+function showVisitCard(html, isWit) {
+  visitCard.innerHTML = html;
+  visitCard.className = isWit ? 'on wit' : 'on';
+  clearTimeout(visitTimeout);
+  gsap.killTweensOf(visitCard);
+  gsap.fromTo(visitCard, { opacity:0, y:-16 }, { opacity:1, y:0, duration:0.35, ease:'power2.out' });
+  visitTimeout = setTimeout(() => {
+    gsap.to(visitCard, { opacity:0, y:-12, duration:0.4, onComplete:() => visitCard.className='' });
+  }, 2200);
+}
+
+let doneDeals = 0;
+
 function enterBuilding(b) {
   if (b.entering) return;
   b.entering = true;
 
-  const deal = Math.floor(Math.random() * 21) + 20; // 20–40 (deal besar)
-
-  // Timeline sinematik
-  gsap.killTweensOf(camState);
-  const tl = gsap.timeline();
-
-  // 1) Zoom-in dalam & lambat (push masuk)
-  tl.to(camState, { zoom: 0.4, duration: 0.9, ease: 'power2.inOut' });
-  // 2) Flash + skor muncul saat sudah "di dalam"
-  tl.add(() => {
-    flashScreen();
+  if (b.isWit) {
+    // === KANTOR WIT — DONE DEAL ===
+    const deal = 100;
     stagePoints += deal;
+    doneDeals++;
     updateHUD();
-    showPop(`MASUK ${b.name}! +${deal}`, '#FF2D2A');
-  }, 0.55);
-  // 3) Hold sebentar di dalam (momen sinematik)
-  tl.to(camState, { zoom: 0.4, duration: 0.45 });
-  // 4) Pull-back halus ke posisi normal
-  tl.to(camState, { zoom: 1, duration: 1.1, ease: 'power3.out' });
+    flashScreen();
+    showPop('DONE DEAL! +100', '#FF2D2A');
+    showVisitCard(
+      `<div class="vc-tag">🎯 KANTOR WIT DITEMUKAN!</div>
+       <div class="vc-title">WIT Indonesia</div>
+       <div class="vc-sub">Solusi IT &amp; Digital Transformation</div>
+       <div class="vc-deal">DONE DEAL &nbsp;<b>+100</b></div>`, true);
+  } else {
+    // === Kantor biasa — referral ===
+    const co = b.co;
+    const pts = co.val * 5;
+    stagePoints += pts;
+    updateHUD();
+    showPop(`+${pts} referral`, '#FF6B6B');
+    showVisitCard(
+      `<div class="vc-tag">🏢 Mengunjungi Kantor</div>
+       <div class="vc-title">${co.pt}</div>
+       <div class="vc-sub">${co.klas}</div>
+       <div class="vc-ref">Referral: <b>${co.ref}</b> &nbsp;·&nbsp; <span class="vc-stars">${co.val}⭐ +${pts}</span></div>`, false);
+  }
 
-  // Bangunan membesar perlahan (seolah ditelan layar), fade out, lalu relokasi
-  tl.to(b.sprite.scale, { x: b.baseW * 1.5, y: b.baseH * 1.5, duration: 0.9, ease: 'power2.inOut' }, 0);
-  tl.to(b.sprite.material, { opacity: 0.15, duration: 0.5, ease: 'power2.in' }, 0.55);
-  tl.add(() => {
-    const nx = (Math.random() - 0.5) * 62;
-    const nz = (Math.random() - 0.5) * 62;
-    b.x = nx; b.z = nz;
-    b.sprite.position.set(nx, b.baseH / 2 + 0.2, nz);
-    b.sprite.scale.set(b.baseW, b.baseH, 1);
-    b.sprite.material.opacity = 1;
-    b.door.position.set(nx, 0.04, nz);
-  }, 1.4);
-  // unlock setelah seluruh timeline selesai
-  tl.add(() => { b.entering = false; });
+  // Kedip kecil di bangunan lalu relokasi (tetap tersembunyi)
+  gsap.to(b.sprite.scale, { x:b.baseW*1.12, y:b.baseH*1.12, duration:0.18, yoyo:true, repeat:1, ease:'power2.inOut',
+    onComplete:() => {
+      const nx = (Math.random()-0.5)*62, nz = (Math.random()-0.5)*62;
+      b.x=nx; b.z=nz; b.co = randCompany();
+      b.sprite.position.set(nx, b.baseH/2+0.2, nz);
+      b.door.position.set(nx, 0.04, nz);
+      if (b.isWit) { b.isWit = false; pickWit(); } // WIT pindah & tersembunyi lagi
+      b.entering = false;
+    }
+  });
 }
 
 function checkCollisions() {
@@ -488,41 +577,34 @@ function checkCollisions() {
       setTimeout(spawnCoin, 2000);
     }
   }
-
-  for (const o of obstacles) {
-    const dx = o.x - px, dz = o.z - pz;
-    if (dx*dx + dz*dz < HIT_DIST2) {
-      if (hitFlash <= 0) {
-        stagePoints = Math.max(0, stagePoints - 5);
-        updateHUD();
-        showPop('-5', '#ff6b6b');
-        hitFlash = 1.2;
-        // knock back
-        playerMesh.position.x -= moveVec.x * 2;
-        playerMesh.position.z -= moveVec.z * 2;
-      }
-    }
-  }
 }
 
 /* ===== TIMER ===== */
 let timeLeft = STAGE_DUR;
-let running  = true;
+let running  = false;   // mulai paused — jalan setelah briefing
+let timerInterval = null;
 
 const timerEl     = document.getElementById('hudTimer');
 const progressFil = document.getElementById('progressFill');
+timerEl.textContent = STAGE_DUR;
 
-let lastTick = performance.now();
-const timerInterval = setInterval(() => {
-  timeLeft--;
-  timerEl.textContent = Math.max(0, timeLeft);
-  progressFil.style.width = (timeLeft / STAGE_DUR * 100) + '%';
-  if (timeLeft <= 0) {
-    clearInterval(timerInterval);
-    running = false;
-    endStage();
-  }
-}, 1000);
+function startStage2() {
+  if (running) return;
+  document.getElementById('briefOverlay').classList.add('hidden');
+  running = true;
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    timerEl.textContent = Math.max(0, timeLeft);
+    progressFil.style.width = (timeLeft / STAGE_DUR * 100) + '%';
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      running = false;
+      endStage();
+    }
+  }, 1000);
+}
+document.getElementById('briefStart').addEventListener('click', startStage2);
+addEventListener('keydown', e => { if (!running && (e.key === 'Enter' || e.key === ' ')) startStage2(); });
 
 /* ===== END STAGE ===== */
 function endStage() {
@@ -531,7 +613,7 @@ function endStage() {
 
   // Persist
   const updated = Object.assign({}, run, {
-    stage2: { points:stagePoints, cuan:earned, coins:stagePoints },
+    stage2: { points:stagePoints, cuan:earned, doneDeals },
     totalCuan,
   });
   localStorage.setItem('gg_run', JSON.stringify(updated));
@@ -564,9 +646,6 @@ function loop(now) {
   // Bob + pulse
   playerMesh.position.y = 1.8 + Math.sin(now * 0.005) * 0.1;
   ring.material.opacity = 0.4 + Math.sin(now * 0.004) * 0.2;
-
-  // Obstacle rotation
-  obstacles.forEach(o => { o.mesh.rotation.y += dt * 0.8; });
 
   // Door ring pulse
   buildings.forEach((b, i) => {
