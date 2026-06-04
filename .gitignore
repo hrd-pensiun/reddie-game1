@@ -8,3 +8,4 @@ dist
 _archive_*
 .vercel
 next-env.d.ts
+tsconfig.tsbuildinfo

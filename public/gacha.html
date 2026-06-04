@@ -45,8 +45,8 @@
   .actions { display:flex; gap:1rem; justify-content:center; margin-top:2rem; flex-wrap:wrap; }
 
   /* RESULT SCREEN */
-  .result-cuan { font-size:clamp(4rem,12vw,8rem); font-weight:700; color:var(--crimson);
-    line-height:1; margin:1rem 0; text-shadow:0 0 40px var(--crimson-glow); }
+  .result-cuan { font-size:clamp(2.2rem,7vw,4.6rem); font-weight:700; color:var(--crimson);
+    line-height:1.05; margin:1rem 0; text-shadow:0 0 40px var(--crimson-glow); white-space:nowrap; }
   .breakdown { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin:2rem 0; }
   .breakdown .b { padding:1rem; border:1px solid var(--border-dim); border-radius:4px; background:var(--crimson-dim); }
   .breakdown .b .s { font-size:.65rem; letter-spacing:.2em; text-transform:uppercase; color:var(--white-60); }
@@ -110,9 +110,14 @@
   .exp-wrap { position:relative; width:100%; min-height:70vh; display:flex; flex-direction:column; gap:1.2rem; }
   .exp-reddie { position:absolute; left:0; bottom:0; width:200px; z-index:3; transition:all .6s; pointer-events:none; }
   .exp-reddie.mini { width:84px; left:0; top:-10px; bottom:auto; }
+  /* Reddie-talk: ditempel di sebelah kiri textbox saat fase dashboard */
+  #expTalk { position:absolute; left:118px; top:4px; width:104px; display:none; z-index:4;
+    pointer-events:none; filter:drop-shadow(0 0 18px rgba(232,48,42,0.45)); }
+  #expTalk.on { display:block; animation:talkBob 2.6s ease-in-out infinite; }
+  @keyframes talkBob { 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
   .dialog-box {
     background:rgba(13,3,5,0.92); border:1px solid var(--border-mid); border-radius:10px;
-    backdrop-filter:blur(12px); padding:1.2rem 1.5rem; max-width:620px; text-align:left;
+    backdrop-filter:blur(12px); padding:1.2rem 1.5rem; max-width:none; text-align:left;
     box-shadow:0 12px 50px rgba(0,0,0,.5);
   }
   .dialog-box .who { font-size:.95rem; font-weight:700; color:var(--crimson); margin-bottom:.5rem; }
@@ -132,7 +137,8 @@
   .bar-row { display:flex; align-items:center; gap:.8rem; margin:.45rem 0; }
   .bar-row .bl { font-size:.72rem; color:var(--white-60); width:90px; text-align:right; flex-shrink:0; }
   .bar-track { flex:1; height:14px; background:rgba(245,242,236,0.06); border-radius:4px; overflow:hidden; }
-  .bar-fill { height:100%; width:0; border-radius:4px; transition:width .9s cubic-bezier(.16,1,.3,1); }
+  .bar-fill { display:block; height:100%; border-radius:4px; transform-origin:left center; animation:barGrow .9s cubic-bezier(.16,1,.3,1) both; }
+  @keyframes barGrow { from { transform:scaleX(0); } to { transform:scaleX(1); } }
   .bar-row .bp { font-size:.65rem; color:var(--white-40); width:34px; flex-shrink:0; }
 
   .exp-cta { margin-top:.5rem; display:flex; justify-content:center; opacity:0; }
@@ -189,7 +195,6 @@
     </div>
     <div id="gachaGate" style="margin-top:1.5rem"></div>
     <div class="actions">
-      <button class="btn btn-ghost" id="resReplay">Main Lagi</button>
       <button class="btn btn-ghost" id="resBoard">Leaderboard</button>
     </div>
   </div>
@@ -201,6 +206,7 @@
     <p class="label">Stage Terakhir · Experience Reddie</p>
     <div class="exp-wrap">
       <img class="exp-reddie" id="expReddie" src="assets/reddie.gif" alt="Reddie" />
+      <img id="expTalk" src="assets/reddie-talk.png" alt="Reddie" />
       <div style="margin-left:230px" id="expDialogWrap">
         <div class="dialog-box" id="expDialog">
           <div class="who">Reddie</div>
@@ -269,12 +275,13 @@ const GACHA_MIN     = 30000;
 const LB_MAX        = 50;
 const fmtRp = n => 'Rp ' + Math.max(0, n).toLocaleString('id-ID');
 
+/* Peluang hadiah utama (Tumbler WIT) = 1 : 10.000 */
+const GRAND_ODDS = 1 / 10000;
 const PRIZES = [
-  { icon:'🏆', name:'Tumbler WIT',  tier:'Grand Prize', chance:5 },
-  { icon:'🎽', name:'Kaos WIT',     tier:'Rare',        chance:15 },
-  { icon:'🧢', name:'Topi WIT',     tier:'Uncommon',    chance:20 },
-  { icon:'📖', name:'Notebook WIT', tier:'Common',      chance:30 },
-  { icon:'🖊️', name:'Pulpen WIT',   tier:'Common',      chance:30 },
+  { icon:'🎒', name:'Souvenir Pack Pouch', tier:'Souvenir',     stock:30 },
+  { icon:'🪭', name:'Hand Fan',            tier:'Souvenir',     stock:8  },
+  { icon:'🏷️', name:'Sticker Logo WIT',    tier:'Souvenir',     stock:14 },
+  { icon:'🏆', name:'Tumbler WIT',         tier:'Hadiah Utama', stock:1, grand:true },
 ];
 
 /* ===== STAR BACKGROUND ===== */
@@ -363,10 +370,14 @@ function showResult() {
 }
 
 function pickPrize() {
-  const total = PRIZES.reduce((s,p) => s + p.chance, 0);
+  // Hadiah utama: peluang 1:10.000
+  if (Math.random() < GRAND_ODDS) return PRIZES.find(p => p.grand);
+  // Sisanya: 3 souvenir, bobot proporsional dengan stok
+  const pool = PRIZES.filter(p => !p.grand);
+  const total = pool.reduce((s,p) => s + p.stock, 0);
   let r = Math.random() * total;
-  for (const p of PRIZES) { r -= p.chance; if (r <= 0) return p; }
-  return PRIZES[PRIZES.length - 1];
+  for (const p of pool) { r -= p.stock; if (r <= 0) return p; }
+  return pool[0];
 }
 
 /* ===== STATISTIK dari gg_run (fallback dummy) ===== */
@@ -422,9 +433,10 @@ function showExperience() {
   const say = document.getElementById('expSay');
   const dash = document.getElementById('expDash');
   const cta = document.getElementById('expCta');
-  reddie.classList.remove('mini');
+  reddie.classList.remove('mini'); reddie.style.display = '';
+  document.getElementById('expTalk').classList.remove('on');
   dash.style.opacity = 0; dash.style.display = 'flex'; dash.style.filter = 'none'; cta.style.opacity = 0;
-  document.getElementById('expDialog').style.maxWidth = '620px';
+  document.getElementById('expDialog').style.maxWidth = 'none';
   document.getElementById('expDialog').querySelector('.who').textContent = 'Reddie';
 
   gsap.fromTo(reddie, { y:120, opacity:0 }, { y:0, opacity:1, duration:.8, ease:'back.out(1.6)' });
@@ -435,15 +447,18 @@ function showExperience() {
   });
 
   function showDashboard() {
-    reddie.classList.add('mini');
+    // ganti gif kedip dengan reddie-talk.png di sebelah textbox
+    reddie.style.display = 'none';
+    document.getElementById('expTalk').classList.add('on');
     document.getElementById('expStats').innerHTML = `
       <div class="stat-card"><div class="num" data-n="${STATS.connections}">0</div><div class="lbl">Total Koneksi</div><div class="sub">stage 1 & 2</div></div>
       <div class="stat-card"><div class="num" style="font-size:1.5rem">${STATS.top.name}</div><div class="lbl">Referral #1</div><div class="sub">${STATS.top.count}x (${STATS.top.pct}%)</div></div>
-      <div class="stat-card"><div class="num" data-rp="${STATS.totalCuan}">Rp 0</div><div class="lbl">Total Score</div><div class="sub">${STATS.doneDeals} done deal</div></div>`;
+      <div class="stat-card"><div class="num" data-rp="${STATS.totalCuan}" style="font-size:1.35rem;white-space:nowrap">Rp 0</div><div class="lbl">Total Score</div><div class="sub">${STATS.doneDeals} done deal</div></div>`;
     document.getElementById('expBars').innerHTML = STATS.dist.map(d => {
       const c = INDUSTRY_COLORS[d.name] || '#C9A84C';
+      const w = Math.max(6, d.pct);
       return `<div class="bar-row"><span class="bl">${d.name}</span>
-        <span class="bar-track"><span class="bar-fill" data-w="${d.pct}" style="background:${c};box-shadow:0 0 10px ${c}66"></span></span>
+        <span class="bar-track"><span class="bar-fill" style="width:${w}%;background:${c};box-shadow:0 0 12px ${c}aa"></span></span>
         <span class="bp">${d.pct}%</span></div>`;
     }).join('');
 
@@ -457,12 +472,7 @@ function showExperience() {
       const n = +el.dataset.rp, o = {v:0};
       gsap.to(o, { v:n, duration:1.6, ease:'power2.out', onUpdate:()=>el.textContent=fmtRp(Math.floor(o.v)) });
     });
-    // bars fill — double rAF agar transisi width dari 0 jalan, tapi target dijamin terpasang
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      document.querySelectorAll('#expBars .bar-fill').forEach(f => {
-        f.style.width = Math.max(4, +f.dataset.w) + '%';
-      });
-    }));
+    // bar width sudah inline; animasi grow via CSS @keyframes barGrow
 
     // FASE 2 — INSIGHT nyata dari Reddie (tahan ≈7s, dashboard tetap jelas)
     setTimeout(showInsight, 2600);
@@ -505,7 +515,7 @@ function showExperience() {
       const impactLine = impact > 0
         ? `Buktinya, <b>WIT</b> telah memberi dampak bisnis sebesar <b style="color:var(--gold)">${fmtRp(impact)}</b> untukmu — dari koneksi &amp; closing deal bersama WIT di Stage 1 &amp; 2.`
         : `WIT siap memberi dampak nyata: satu koneksi tepat bisa membuka deal bernilai miliaran.`;
-      dialog.style.maxWidth = '720px';
+      dialog.style.maxWidth = 'none';
       say.innerHTML = `
         <div style="font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:.6rem">✦ Ringkasan &amp; Rekomendasi</div>
         Jaringan adalah aset terbesarmu. Prinsip <b>Givers Gain</b> terbukti — makin banyak <b>referral</b> yang kamu beri, makin besar peluang closing yang kembali padamu.<br><br>
@@ -543,6 +553,10 @@ function startFountain() {
 
   const reddieImg = new Image(); reddieImg.src = 'assets/reddie.png';
   const ready = () => reddieImg.complete && reddieImg.naturalWidth;
+  const fortressImg = new Image(); fortressImg.src = 'assets/last-deal-fortress.png';
+  const treeSheet  = new Image(); treeSheet.src  = 'assets/last-pohon.png';
+  const TREE_FRAMES = 5;
+  const imgReady = img => img && img.complete && img.naturalWidth;
 
   // tuning — terkontrol (skor 1M+ tidak instakill)
   const scoreTier = Math.min(3, Math.floor((STATS.totalCuan) / 50000));
@@ -584,7 +598,7 @@ function startFountain() {
   // Pohon mengisi sela antar-bangunan
   for (let i=0;i<20;i++){
     const a = Math.random()*Math.PI*2, r = ringR*(0.74+Math.random()*0.6);
-    scenery.push({ type:'t', x: cx+Math.cos(a)*r, y: cy+Math.sin(a)*r*0.52+40, s:0.6+Math.random()*0.85 });
+    scenery.push({ type:'t', x: cx+Math.cos(a)*r, y: cy+Math.sin(a)*r*0.52+40, s:0.9+Math.random()*0.7, frame:Math.floor(Math.random()*TREE_FRAMES) });
   }
   scenery.sort((a,b)=>a.y-b.y);                       // depth sort
 
@@ -648,7 +662,7 @@ function startFountain() {
 
     // dekor (bangunan iso + pohon) — sudah depth-sorted
     scenery.forEach(it => {
-      if (it.type==='t') drawTree(it.x, it.y, it.s);
+      if (it.type==='t') drawTree(it.x, it.y, it.s, it.frame);
       else drawBuilding(it.img, it.x, it.y, it.w);
     });
 
@@ -664,20 +678,20 @@ function startFountain() {
     ctx.globalAlpha=1;
   }
 
-  function drawTree(x,y,s){
-    ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
-    // bayangan
-    ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(0,2,16,5,0,0,Math.PI*2); ctx.fill();
-    // batang
-    ctx.fillStyle='#1c130c'; ctx.fillRect(-3,-14,6,16);
-    // pine 3 layer
-    for (let i=0;i<3;i++){
-      const yy=-14-i*14, w=18-i*4;
-      ctx.beginPath(); ctx.moveTo(0,yy-22); ctx.lineTo(w,yy); ctx.lineTo(-w,yy); ctx.closePath();
-      ctx.fillStyle = i===0?'#143026':'#0f261d'; ctx.fill();
-      ctx.strokeStyle='rgba(93,202,165,0.12)'; ctx.lineWidth=1; ctx.stroke();
+  function drawTree(x,y,s,frame){
+    if (imgReady(treeSheet)) {
+      const fw = treeSheet.naturalWidth / TREE_FRAMES, fh = treeSheet.naturalHeight;
+      const w = 86*s, h = w*(fh/fw);
+      ctx.drawImage(treeSheet, (frame||0)*fw, 0, fw, fh, x-w/2, y-h, w, h);
+    } else {
+      // fallback pine sederhana
+      ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+      ctx.fillStyle='#1c130c'; ctx.fillRect(-3,-14,6,16);
+      for (let i=0;i<3;i++){ const yy=-14-i*14, w=18-i*4;
+        ctx.beginPath(); ctx.moveTo(0,yy-22); ctx.lineTo(w,yy); ctx.lineTo(-w,yy); ctx.closePath();
+        ctx.fillStyle = i===0?'#143026':'#0f261d'; ctx.fill(); }
+      ctx.restore();
     }
-    ctx.restore();
   }
 
   function drawBuilding(img, x, y, w){
@@ -706,63 +720,36 @@ function startFountain() {
 
     // aura glow (pulsing, makin merah saat sekarat)
     const pulse = 0.5+Math.sin(now*0.004)*0.2 + coreFlash*0.4;
-    const aura = ctx.createRadialGradient(cx,cy-20,0,cx,cy-20,260);
+    const aura = ctx.createRadialGradient(cx,cy-30,0,cx,cy-30,250);
     const red = 1-dmgPct;
     aura.addColorStop(0, `rgba(${200+red*55|0},${168-red*100|0},${76-red*40|0},${0.16*pulse+0.05})`);
     aura.addColorStop(1, 'rgba(201,168,76,0)');
-    ctx.fillStyle=aura; ctx.beginPath(); ctx.arc(cx,cy-20,260,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=aura; ctx.beginPath(); ctx.arc(cx,cy-30,250,0,Math.PI*2); ctx.fill();
 
     // bayangan dasar
-    ctx.fillStyle='rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(cx,cy+78,110,26,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.ellipse(cx,cy+78,108,24,0,0,Math.PI*2); ctx.fill();
 
-    // 3 tier batu (iso ellipse bertumpuk)
-    const tiers=[ {ry:74,rx:108,h:34,c:'#1b212e'}, {ry:60,rx:84,h:30,c:'#222a3a'}, {ry:46,rx:62,h:26,c:'#2a3447'} ];
-    let baseY=cy+70;
-    tiers.forEach(t => {
-      // sisi
-      ctx.fillStyle=t.c; ctx.beginPath();
-      ctx.ellipse(cx,baseY,t.rx,t.ry*0.34,0,0,Math.PI); ctx.lineTo(cx-t.rx,baseY-t.h);
-      ctx.ellipse(cx,baseY-t.h,t.rx,t.ry*0.34,0,Math.PI,0,true); ctx.closePath(); ctx.fill();
-      // permukaan atas
-      ctx.beginPath(); ctx.ellipse(cx,baseY-t.h,t.rx,t.ry*0.34,0,0,Math.PI*2);
-      ctx.fillStyle='#323d54'; ctx.fill();
-      ctx.strokeStyle='rgba(201,168,76,0.35)'; ctx.lineWidth=1.5; ctx.stroke();
-      baseY -= t.h+2;
-    });
-
-    // pilar throne tapered
-    const topY = baseY;
-    const bg=ctx.createLinearGradient(0,topY-120,0,topY);
-    bg.addColorStop(0,'#0c1326'); bg.addColorStop(1,'#1a2238');
-    ctx.fillStyle=bg;
-    ctx.beginPath(); ctx.moveTo(cx-34,topY); ctx.lineTo(cx-22,topY-118); ctx.lineTo(cx+22,topY-118); ctx.lineTo(cx+34,topY); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle='rgba(201,168,76,0.4)'; ctx.lineWidth=1.5; ctx.stroke();
-    // ukiran emas vertikal
-    ctx.strokeStyle='rgba(201,168,76,0.25)';
-    ctx.beginPath(); ctx.moveTo(cx,topY-10); ctx.lineTo(cx,topY-110); ctx.stroke();
-
-    // core energy (orb melayang) + rune ring berputar
-    const coreY = topY-86;
-    const cg=ctx.createRadialGradient(cx,coreY,0,cx,coreY,30);
-    const mix = dmgPct>0.4? '232,180,90' : '232,60,42';
-    cg.addColorStop(0,`rgba(255,240,200,${0.95})`); cg.addColorStop(0.4,`rgba(${mix},0.9)`); cg.addColorStop(1,`rgba(${mix},0)`);
-    ctx.fillStyle=cg; ctx.beginPath(); ctx.arc(cx,coreY,28+coreFlash*8,0,Math.PI*2); ctx.fill();
-    // rune ring
-    ctx.save(); ctx.translate(cx,coreY); ctx.rotate(now*0.0015); ctx.scale(1,0.5);
-    ctx.strokeStyle='rgba(201,168,76,0.6)'; ctx.lineWidth=2;
-    for (let i=0;i<6;i++){ ctx.beginPath(); ctx.arc(0,0,34, i*Math.PI/3, i*Math.PI/3+0.5); ctx.stroke(); }
-    ctx.restore();
-
-    // retakan progresif + kebocoran energi merah
-    if (dmgPct < 0.7) {
-      ctx.strokeStyle=`rgba(232,48,42,${0.5+(1-dmgPct)*0.5})`; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(cx-12,topY-90); ctx.lineTo(cx+4,topY-50); ctx.lineTo(cx-8,topY-14); ctx.stroke();
-      if (dmgPct<0.4){ ctx.beginPath(); ctx.moveTo(cx+16,topY-100); ctx.lineTo(cx+6,topY-60); ctx.lineTo(cx+20,topY-20); ctx.stroke(); }
-      if (dmgPct<0.15 && Math.sin(now*0.03)>0){ ctx.fillStyle='rgba(232,48,42,0.12)'; ctx.fillRect(cx-40,topY-118,80,130); }
+    // === GAMBAR DEAL FORTRESS ===
+    const fh = Math.min(300, innerHeight*0.5);
+    const ratio = imgReady(fortressImg) ? fortressImg.naturalWidth/fortressImg.naturalHeight : 0.882;
+    const fw = fh*ratio;
+    const baseY = cy + 82;            // kaki fortress menapak di platform
+    const topY  = baseY - fh;
+    // glow merah berkedip di belakang fortress saat sekarat
+    if (dmgPct < 0.35) {
+      const flick = (0.4 + Math.abs(Math.sin(now*0.02))*0.6) * (0.35-dmgPct)/0.35;
+      const rg = ctx.createRadialGradient(cx, baseY-fh*0.5, 0, cx, baseY-fh*0.5, fw*0.7);
+      rg.addColorStop(0, `rgba(232,48,42,${0.45*flick})`); rg.addColorStop(1, 'rgba(232,48,42,0)');
+      ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(cx, baseY-fh*0.5, fw*0.7, 0, Math.PI*2); ctx.fill();
+    }
+    if (imgReady(fortressImg)) {
+      ctx.drawImage(fortressImg, cx-fw/2, topY, fw, fh);
+    } else {
+      ctx.fillStyle='#1a2238'; ctx.fillRect(cx-50, topY, 100, fh);
     }
 
-    // HP bar
-    const bw=220, bx=cx-bw/2, by=coreY-70;
+    // HP bar di atas fortress
+    const bw=220, bx=cx-bw/2, by=Math.max(48, topY+10);
     ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(bx-2,by-2,bw+4,14);
     ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fillRect(bx,by,bw,10);
     const hg=ctx.createLinearGradient(bx,0,bx+bw,0); hg.addColorStop(0,'#E8302A'); hg.addColorStop(1,'#C9A84C');
@@ -770,7 +757,6 @@ function startFountain() {
     ctx.strokeStyle='rgba(201,168,76,0.4)'; ctx.lineWidth=1; ctx.strokeRect(bx,by,bw,10);
 
     coreFlash *= 0.9;
-    return { coreX:cx, coreY:cy-30 };
   }
 
   /* ---- DRAW: reddie sprite (anchor di kaki, bisa flip) ---- */
@@ -814,9 +800,6 @@ function startFountain() {
     hero.offset *= 0.8;
     const y = hero.y + (ended? Math.sin(now*0.012)*9 : 0);
     drawReddieSprite(hero.x + hero.offset, y, hero.scale, false, hero.offset>8?1:0.3);
-    // label hero
-    ctx.fillStyle='#C9A84C'; ctx.font='bold 11px DM Sans'; ctx.textAlign='center';
-    ctx.fillText('REDDIE', hero.x, y+14);
   }
 
   function drawSlashes(dt) {
@@ -928,10 +911,6 @@ function confettiBurst() {
 }
 
 /* ===== BUTTONS ===== */
-document.getElementById('resReplay').addEventListener('click', () => {
-  localStorage.removeItem('gg_run');
-  window.location.href = 'game.html';
-});
 document.getElementById('resBoard').addEventListener('click', showLeaderboard);
 document.getElementById('lbReplay').addEventListener('click', () => {
   localStorage.removeItem('gg_run');
