@@ -16,7 +16,7 @@ export default function LeaderboardPage() {
               <span className="italic text-3xl md:text-5xl text-crimson">Universe</span>
               <span className="text-white/20 text-xl mx-2">×</span>
               <span className="font-bold text-2xl md:text-4xl">BNI</span>
-              <span className="italic text-2xl md:text-4xl text-crimson">Rise.</span>
+              <span className="italic text-2xl md:text-4xl text-crimson">Natcon 2026.</span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 border border-crimson/40 rounded-full text-[10px] uppercase tracking-[0.3em] text-crimson">
               <span className="w-2 h-2 rounded-full bg-crimson animate-pulse shadow-crimson" />

@@ -176,7 +176,7 @@ export function CinemaContent() {
               <span className="italic text-white/80">Universe</span>
               <span className="text-white/30 mx-3">×</span>
               <span className="text-white font-semibold">BNI</span>{' '}
-              <span className="italic text-crimson">Rise.</span>
+              <span className="italic text-crimson">Natcon 2026.</span>
             </span>
           </motion.div>
           <motion.h2 variants={fadeUp} className="font-display text-[clamp(2rem,5vw,4rem)] leading-[1.1] mt-6">
