@@ -37,7 +37,7 @@ export default function LeaderboardPage() {
                 Top <span className="italic text-crimson">Players</span>
               </h1>
               <p className="mt-3 text-[10px] md:text-xs tracking-[0.4em] uppercase text-white/40">
-                Booth WIT Indonesia · BNI Rise
+                Booth WIT Indonesia · BNI Natcon 2026
               </p>
             </div>
             <LeaderboardTable />

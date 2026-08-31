@@ -275,13 +275,11 @@ const GACHA_MIN     = 30000;
 const LB_MAX        = 50;
 const fmtRp = n => 'Rp ' + Math.max(0, n).toLocaleString('id-ID');
 
-/* Peluang hadiah utama (Tumbler WIT) = 1 : 10.000 */
-const GRAND_ODDS = 1 / 10000;
 const PRIZES = [
-  { icon:'🎒', name:'Souvenir Pack Pouch', tier:'Souvenir',     stock:30 },
-  { icon:'🪭', name:'Hand Fan',            tier:'Souvenir',     stock:8  },
-  { icon:'🏷️', name:'Sticker Logo WIT',    tier:'Souvenir',     stock:14 },
-  { icon:'🏆', name:'Tumbler WIT',         tier:'Hadiah Utama', stock:1, grand:true },
+  { icon:'🪭', name:'Hand Fan',          tier:'Souvenir', stock:20 },
+  { icon:'🏷️', name:'Sticker Pack',      tier:'Souvenir', stock:10 },
+  { icon:'📐', name:'Stationary Kit',    tier:'Souvenir', stock:5  },
+  { icon:'🖊️', name:'Pulpen',            tier:'Souvenir', stock:5  },
 ];
 
 /* ===== STAR BACKGROUND ===== */
@@ -370,14 +368,11 @@ function showResult() {
 }
 
 function pickPrize() {
-  // Hadiah utama: peluang 1:10.000
-  if (Math.random() < GRAND_ODDS) return PRIZES.find(p => p.grand);
-  // Sisanya: 3 souvenir, bobot proporsional dengan stok
-  const pool = PRIZES.filter(p => !p.grand);
-  const total = pool.reduce((s,p) => s + p.stock, 0);
+  // Semua souvenir, bobot proporsional dengan stok
+  const total = PRIZES.reduce((s,p) => s + p.stock, 0);
   let r = Math.random() * total;
-  for (const p of pool) { r -= p.stock; if (r <= 0) return p; }
-  return pool[0];
+  for (const p of PRIZES) { r -= p.stock; if (r <= 0) return p; }
+  return PRIZES[0];
 }
 
 /* ===== STATISTIK dari gg_run (fallback dummy) ===== */

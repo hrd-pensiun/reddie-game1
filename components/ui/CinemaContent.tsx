@@ -50,7 +50,7 @@ export function CinemaContent() {
           {/* Brand label */}
           <motion.div variants={fadeUp} className="flex items-center gap-3 justify-center mt-5 mb-6">
             <span className="w-2 h-2 rounded-full bg-crimson shadow-[0_0_14px_#FF2D2A]" />
-            <span className="text-[10px] tracking-[0.45em] uppercase text-white/55">Reddie's Universe × BNI Rise</span>
+            <span className="text-[10px] tracking-[0.45em] uppercase text-white/55">Reddie's Universe × BNI Natcon 2026</span>
           </motion.div>
 
           {/* Headline */}

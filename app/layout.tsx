@@ -12,7 +12,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Reddie's Universe × BNI Rise — 360° Digital Transformation",
+  title: "Reddie's Universe × BNI Natcon 2026 — 360° Digital Transformation",
   description: 'End-to-end digital solutions for forward-thinking enterprises. Powered by WIT.',
 };
 
